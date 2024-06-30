@@ -10,6 +10,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/joho/godotenv"
 
 	"github.com/xgnid-tw/gx5/discord"
 	"github.com/xgnid-tw/gx5/model"
@@ -19,6 +20,11 @@ import (
 const ChanBuffer = 20
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("can not fetch env")
+	}
+
 	ctx := context.Background()
 	notionKey := os.Getenv("NOTION_TOKEN")
 	notionUserDBID := os.Getenv("NOTION_USER_DB_ID")

@@ -51,7 +51,6 @@ func (s *notion) SendNotPaidInformation(ctx context.Context) error {
 
 		if amount > discordNotificationAmountLimit {
 			// send with channel
-			u.DiscordID = "374867612519366657"
 			s.ch <- *u
 		}
 	}
