@@ -1,0 +1,53 @@
+run:
+  concurrency: 2
+  modules-download-mode: readonly
+
+linters:
+  enable-all: true
+  disable:
+    # Dprecated
+    - deadcode
+    - exhaustivestruct
+    - golint
+    - ifshort
+    - interfacer
+    - maligned
+    - nosnakecase
+    - scopelint
+    - structcheck
+    - varcheck
+    # Duplicated
+    - cyclop
+    - funlen
+    - goerr113
+    - gofmt
+    - goimports
+    - grouper
+    - nlreturn
+    - unparam
+    - whitespace
+    # Noisy
+    - exhaustruct
+    - gochecknoglobals
+    - gochecknoinits
+    - godot
+    - ireturn
+    - paralleltest
+    - varnamelen
+    # Disable
+    - depguard
+    - execinquery
+    - exportloopref
+    - ginkgolinter
+    - gomodguard
+    - loggercheck
+    - rowserrcheck
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
+    - tagalign
+    - testifylint
+    - gosmopolitan
+    - perfsprint
+    - gci
+

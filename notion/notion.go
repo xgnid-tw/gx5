@@ -58,6 +58,42 @@ func (s *notion) SendNotPaidInformation(ctx context.Context) error {
 	return nil
 }
 
+func (s *notion) GetDiscordIDList(ctx context.Context) ([]*model.User, error) {
+	result, err := s.client.Database.Query(ctx, s.userDBID,
+		&notionapi.DatabaseQueryRequest{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("notion database query failed: %w", err)
+	}
+
+	users := make([]*model.User, 0)
+
+	for _, v := range result.Results {
+		discordID, discordOk := getTitleContent(v.Properties["discord_id"])
+		if !discordOk {
+			return nil, fmt.Errorf("failed to fetch discord column")
+		}
+
+		name, nameOk := getRichTextContent(v.Properties["name"])
+		if !nameOk {
+			return nil, fmt.Errorf("failed to fetch name column")
+		}
+
+		notionID, notionOk := getRichTextContent(v.Properties["notion_id"])
+		if !notionOk {
+			return nil, fmt.Errorf("failed to fetch notion column")
+		}
+
+		users = append(users, &model.User{
+			DiscordID: discordID,
+			Name:      name,
+			NotionID:  notionID,
+		})
+	}
+
+	return users, nil
+}
+
 func (s *notion) getUserNotPaidAmount(ctx context.Context, userDatabaseID notionapi.DatabaseID) (float64, error) {
 	expiredDateObj := notionapi.Date(time.Now().AddDate(0, -2, 0))
 
@@ -93,42 +129,6 @@ func (s *notion) getUserNotPaidAmount(ctx context.Context, userDatabaseID notion
 	}
 
 	return total, nil
-}
-
-func (s *notion) GetDiscordIDList(ctx context.Context) ([]*model.User, error) {
-	result, err := s.client.Database.Query(ctx, s.userDBID,
-		&notionapi.DatabaseQueryRequest{},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("notion database query failed: %w", err)
-	}
-
-	users := make([]*model.User, 0)
-
-	for _, v := range result.Results {
-		discordID, discordOk := getTitleContent(v.Properties["discord_id"])
-		if !discordOk {
-			return nil, fmt.Errorf("failed to fetch discord column")
-		}
-
-		name, nameOk := getRichTextContent(v.Properties["name"])
-		if !nameOk {
-			return nil, fmt.Errorf("failed to fetch name column")
-		}
-
-		notionID, notionOk := getRichTextContent(v.Properties["notion_id"])
-		if !notionOk {
-			return nil, fmt.Errorf("failed to fetch notion column")
-		}
-
-		users = append(users, &model.User{
-			DiscordID: discordID,
-			Name:      name,
-			NotionID:  notionID,
-		})
-	}
-
-	return users, nil
 }
 
 func getTitleContent(p notionapi.Property) (string, bool) {
