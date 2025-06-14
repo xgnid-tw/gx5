@@ -1,54 +1,52 @@
+version: "2"
 run:
   concurrency: 2
-  timout: 5m
   modules-download-mode: readonly
-
 linters:
-  enable-all: true
+  default: all
   disable:
-    # Dprecated
-    - deadcode
-    - exhaustivestruct
-    - golint
-    - ifshort
-    - interfacer
-    - maligned
-    - nosnakecase
-    - scopelint
-    - structcheck
-    - varcheck
-    # Duplicated
     - cyclop
-    - funlen
-    - goerr113
-    - gofmt
-    - goimports
-    - grouper
-    - nlreturn
-    - unparam
-    - whitespace
-    # Noisy
+    - depguard
+    - err113
     - exhaustruct
+    - funlen
+    - ginkgolinter
     - gochecknoglobals
     - gochecknoinits
     - godot
-    - ireturn
-    - paralleltest
-    - varnamelen
-    # Disable
-    - depguard
-    - execinquery
-    - exportloopref
-    - ginkgolinter
     - gomodguard
+    - gosmopolitan
+    - grouper
+    - ireturn
     - loggercheck
-    - rowserrcheck
+    - nlreturn
+    - paralleltest
+    - perfsprint
     - rowserrcheck
     - sloglint
     - sqlclosecheck
     - tagalign
     - testifylint
-    - gosmopolitan
-    - perfsprint
-    - gci
-
+    - unparam
+    - varnamelen
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
