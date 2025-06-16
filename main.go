@@ -30,6 +30,7 @@ func main() {
 	notionUserDBID := os.Getenv("NOTION_USER_DB_ID")
 
 	discordToken := os.Getenv("DISCORD_TOKEN")
+	discordLogChannelID := os.Getenv("DISCORD_GUILD_LOG_CHANNEL_ID")
 
 	dc, err := discordgo.New(discordToken)
 	if err != nil {
@@ -43,7 +44,7 @@ func main() {
 	runWorker(ctx, notionKey, nToDch, notionUserDBID)
 
 	// run discord bot
-	runDiscordBot(ctx, dc, nToDch)
+	runDiscordBot(ctx, dc, nToDch, discordLogChannelID)
 }
 
 func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDBID string) {
@@ -64,8 +65,8 @@ func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDB
 		log.Fatalf("can not create notion service, %s", err)
 	}
 
-	_, err = s.NewJob(gocron.MonthlyJob(
-		1, gocron.NewDaysOfTheMonth(1), gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)),
+	_, err = s.NewJob(gocron.DailyJob(
+		1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)),
 	), gocron.NewTask(
 		func() {
 			log.Print("run job ")
@@ -83,11 +84,10 @@ func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDB
 	s.Start()
 }
 
-func runDiscordBot(ctx context.Context, dc *discordgo.Session, nToDch chan model.User) {
-	des := discord.NewDiscordEventService(dc, nToDch)
-
-	// add handlers
-	// dc.AddHandler(des.MessageCreate)
+func runDiscordBot(ctx context.Context,
+	dc *discordgo.Session, nToDch chan model.User, logChannelID string,
+) {
+	des := discord.NewDiscordEventService(dc, nToDch, logChannelID)
 
 	dc.Identify.Intents = discordgo.IntentsAll
 
