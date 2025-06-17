@@ -44,7 +44,12 @@ func (s *notion) SendNotPaidInformation(ctx context.Context) error {
 	}
 
 	for _, u := range users {
-		amount, err := s.getUserNotPaidAmount(ctx, notionapi.DatabaseID(u.NotionID))
+		// once in a day for high freq user
+		if !u.High && time.Now().Day() != 1 {
+			continue
+		}
+
+		amount, err := s.getUserNotPaidAmount(ctx, notionapi.DatabaseID(u.NotionID), u.High)
 		if err != nil {
 			return fmt.Errorf("get user not paid amount: %w", err)
 		}
@@ -84,21 +89,40 @@ func (s *notion) GetDiscordIDList(ctx context.Context) ([]*model.User, error) {
 			return nil, fmt.Errorf("failed to fetch notion column")
 		}
 
+		high, highOk := getCheckboxContent(v.Properties["high"])
+		if !highOk {
+			return nil, fmt.Errorf("failed to fetch high column")
+		}
+
 		users = append(users, &model.User{
 			DiscordID: discordID,
 			Name:      name,
 			NotionID:  notionID,
+			High:      high,
 		})
 	}
 
 	return users, nil
 }
 
-func (s *notion) getUserNotPaidAmount(ctx context.Context, userDatabaseID notionapi.DatabaseID) (float64, error) {
+func (s *notion) getUserNotPaidAmount(ctx context.Context,
+	userDatabaseID notionapi.DatabaseID, high bool,
+) (float64, error) {
 	expiredDateObj := notionapi.Date(time.Now().AddDate(0, -2, 0))
 
-	res, err := s.client.Database.Query(ctx, userDatabaseID, &notionapi.DatabaseQueryRequest{
-		Filter: &notionapi.AndCompoundFilter{
+	var filter notionapi.Filter
+
+	if high {
+		filter = &notionapi.AndCompoundFilter{
+			&notionapi.PropertyFilter{
+				Property: "付款狀況",
+				Select: &notionapi.SelectFilterCondition{
+					Equals: "尚未付款",
+				},
+			},
+		}
+	} else {
+		filter = &notionapi.AndCompoundFilter{
 			&notionapi.PropertyFilter{
 				Property: "付款狀況",
 				Select: &notionapi.SelectFilterCondition{
@@ -111,7 +135,11 @@ func (s *notion) getUserNotPaidAmount(ctx context.Context, userDatabaseID notion
 					Before: &expiredDateObj,
 				},
 			},
-		},
+		}
+	}
+
+	res, err := s.client.Database.Query(ctx, userDatabaseID, &notionapi.DatabaseQueryRequest{
+		Filter: filter,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("notion database query failed: %w", err)
@@ -157,4 +185,13 @@ func getNumberContent(p notionapi.Property) (float64, bool) {
 	}
 
 	return 0, false
+}
+
+func getCheckboxContent(p notionapi.Property) (bool, bool) {
+	np, ok := p.(*notionapi.CheckboxProperty)
+	if ok {
+		return np.Checkbox, true
+	}
+
+	return false, false
 }

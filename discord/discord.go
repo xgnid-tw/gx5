@@ -16,17 +16,20 @@ type Discord interface {
 }
 
 type discord struct {
-	s  *discordgo.Session
-	ch chan model.User
+	s            *discordgo.Session
+	ch           chan model.User
+	logChannelID string
 }
 
 func NewDiscordEventService(
 	s *discordgo.Session,
 	ch chan model.User,
+	logChannelID string,
 ) Discord {
 	return &discord{
-		s:  s,
-		ch: ch,
+		s:            s,
+		ch:           ch,
+		logChannelID: logChannelID,
 	}
 }
 
@@ -48,12 +51,19 @@ func (de *discord) GetChanMsgAndDM(ctx context.Context) {
 }
 
 func (de *discord) sendDM(discordID string, message string) error {
+	// send to user
 	channel, err := de.s.UserChannelCreate(discordID)
 	if err != nil {
 		return fmt.Errorf("error creating channel %w", err)
 	}
 
 	_, err = de.s.ChannelMessageSend(channel.ID, message)
+	if err != nil {
+		return fmt.Errorf("error when sending dm: %w", err)
+	}
+
+	// send to log bot
+	_, err = de.s.ChannelMessageSend(de.logChannelID, message)
 	if err != nil {
 		return fmt.Errorf("error when sending dm: %w", err)
 	}

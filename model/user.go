@@ -5,4 +5,5 @@ type User struct {
 	DiscordID string
 	Name      string
 	NotionID  string
+	High      bool
 }
