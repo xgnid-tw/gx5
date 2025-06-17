@@ -38,6 +38,7 @@ jobs:
             echo "DISCORD_TOKEN=${DISCORD_TOKEN}" >> .env
             echo "NOTION_TOKEN=${NOTION_TOKEN}" >> .env
             echo "NOTION_USER_DB_ID=${NOTION_USER_DB_ID}" >> .env
+            echo "DISCORD_GUILD_LOG_CHANNEL_ID=${DISCORD_GUILD_LOG_CHANNEL_ID}"
       - persist_to_workspace:
           root: ./
           paths:
