@@ -67,7 +67,7 @@ func (de *discord) sendDM(discordID string, message string) error {
 	}
 
 	if de.debug {
-		fmt.Println("debug mode on")
+		log.Print("debug mode on")
 		return nil
 	}
 

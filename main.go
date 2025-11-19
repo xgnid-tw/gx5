@@ -45,11 +45,7 @@ func main() {
 	// run worker
 	runWorker(ctx, notionKey, nToDch, notionUserDBID, corntab)
 
-	debug := false
-
-	if os.Getenv("DEBUG") != "" {
-		debug = true
-	}
+	debug := os.Getenv("DEBUG") != ""
 
 	// run discord bot
 	runDiscordBot(ctx, dc, nToDch, discordLogChannelID, debug)
