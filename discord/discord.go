@@ -19,17 +19,20 @@ type discord struct {
 	s            *discordgo.Session
 	ch           chan model.User
 	logChannelID string
+	debug        bool
 }
 
 func NewDiscordEventService(
 	s *discordgo.Session,
 	ch chan model.User,
 	logChannelID string,
+	debug bool,
 ) Discord {
 	return &discord{
 		s:            s,
 		ch:           ch,
 		logChannelID: logChannelID,
+		debug:        debug,
 	}
 }
 
@@ -55,6 +58,17 @@ func (de *discord) sendDM(discordID string, message string) error {
 	channel, err := de.s.UserChannelCreate(discordID)
 	if err != nil {
 		return fmt.Errorf("error creating channel %w", err)
+	}
+
+	// send to log bot
+	_, err = de.s.ChannelMessageSend(de.logChannelID, message)
+	if err != nil {
+		return fmt.Errorf("error when sending dm: %w", err)
+	}
+
+	if de.debug {
+		log.Print("debug mode on")
+		return nil
 	}
 
 	_, err = de.s.ChannelMessageSend(channel.ID, message)

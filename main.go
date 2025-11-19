@@ -40,14 +40,18 @@ func main() {
 
 	nToDch := make(chan model.User, ChanBuffer)
 
+	corntab := os.Getenv("WORKER_CORNTAB")
+
 	// run worker
-	runWorker(ctx, notionKey, nToDch, notionUserDBID)
+	runWorker(ctx, notionKey, nToDch, notionUserDBID, corntab)
+
+	debug := os.Getenv("DEBUG") != ""
 
 	// run discord bot
-	runDiscordBot(ctx, dc, nToDch, discordLogChannelID)
+	runDiscordBot(ctx, dc, nToDch, discordLogChannelID, debug)
 }
 
-func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDBID string) {
+func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDBID string, corntab string) {
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		log.Fatalf("invalid location :%s", err)
@@ -65,9 +69,7 @@ func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDB
 		log.Fatalf("can not create notion service, %s", err)
 	}
 
-	_, err = s.NewJob(gocron.DailyJob(
-		1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)),
-	), gocron.NewTask(
+	_, err = s.NewJob(gocron.CronJob(corntab, false), gocron.NewTask(
 		func() {
 			log.Print("run job ")
 
@@ -85,9 +87,9 @@ func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDB
 }
 
 func runDiscordBot(ctx context.Context,
-	dc *discordgo.Session, nToDch chan model.User, logChannelID string,
+	dc *discordgo.Session, nToDch chan model.User, logChannelID string, debug bool,
 ) {
-	des := discord.NewDiscordEventService(dc, nToDch, logChannelID)
+	des := discord.NewDiscordEventService(dc, nToDch, logChannelID, debug)
 
 	dc.Identify.Intents = discordgo.IntentsAll
 
