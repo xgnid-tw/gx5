@@ -62,7 +62,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run: |
-          echo "ssh.xgnid.me ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINw83wSAmzc8a+6ogibQ1lExzdfFCU83tUKy7uPRzuHU" >> ~/.ssh/known_hosts
+          echo "ssh.xgnid.space ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINw83wSAmzc8a+6ogibQ1lExzdfFCU83tUKy7uPRzuHU" >> ~/.ssh/known_hosts
           mv /tmp/workspace/.env ./.env
           rsync -va --delete ./ $SSH_USER@$SSH_HOST:gx5
 
