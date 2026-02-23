@@ -4,5 +4,3 @@
 # binary
 bin/*
 
-# dev container
-.devcontainer/*

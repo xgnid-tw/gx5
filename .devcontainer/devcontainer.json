@@ -1,0 +1,50 @@
+// For format details, see https://aka.ms/devcontainer.json
+{
+  "name": "gx5",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "VARIANT": "1.25-bookworm"
+    },
+    "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"]
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        },
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.lintOnSave": "package",
+        "go.formatTool": "gofumpt",
+        "go.lintTool": "golangci-lint",
+        "go.alternateTools": {
+          "golangci-lint": "${containerWorkspaceFolder}/bin/golangci-lint"
+        },
+        "go.lintFlags": ["--fast"],
+        "go.useLanguageServer": true,
+        "gopls": {
+          "build.directoryFilters": ["-node_modules"],
+          "formatting.local": "github.com/xgnid-tw/gx5",
+          "formatting.gofumpt": true
+        },
+        "go.gopath": "/go"
+      },
+
+      "extensions": [
+        "eamodio.gitlens",
+        "golang.Go",
+        "dbaeumer.vscode-exlint",
+        "exiasr.hadolint",
+        "editorconfig.editorconfig",
+        "esbenp.prettier-vscode",
+        "shd101wyy.markdown-preview-enhanced",
+        "Anthropic.claude-code"
+      ]
+    }
+  },
+  "remoteUser": "vscode",
+  "runArgs": ["--env-file", ".env"]
+}

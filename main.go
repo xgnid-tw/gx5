@@ -8,101 +8,93 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/benbjohnson/clock"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
 
-	"github.com/xgnid-tw/gx5/discord"
-	"github.com/xgnid-tw/gx5/model"
-	"github.com/xgnid-tw/gx5/notion"
+	"github.com/xgnid-tw/gx5/config"
+	discordgw "github.com/xgnid-tw/gx5/gateway/discord"
+	notiongw "github.com/xgnid-tw/gx5/gateway/notion"
+	"github.com/xgnid-tw/gx5/usecase"
 )
 
-const ChanBuffer = 20
-
 func main() {
+	// Load environment variables from .env file
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("can not fetch env")
 	}
 
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("invalid config: %s", err)
+	}
+
 	ctx := context.Background()
-	notionKey := os.Getenv("NOTION_TOKEN")
-	notionUserDBID := os.Getenv("NOTION_USER_DB_ID")
 
-	discordToken := os.Getenv("DISCORD_TOKEN")
-	discordLogChannelID := os.Getenv("DISCORD_GUILD_LOG_CHANNEL_ID")
-
-	dc, err := discordgo.New(discordToken)
+	// Initialize external service clients
+	dc, err := discordgo.New(cfg.DiscordToken)
 	if err != nil {
-		log.Fatalf("can not create discord session, %s", err)
+		log.Fatalf("can not create discord session: %s", err)
 	}
-	defer dc.Close()
-
-	nToDch := make(chan model.User, ChanBuffer)
-
-	corntab := os.Getenv("WORKER_CORNTAB")
-
-	// run worker
-	runWorker(ctx, notionKey, nToDch, notionUserDBID, corntab)
-
-	debug := os.Getenv("DEBUG") != ""
-
-	// run discord bot
-	runDiscordBot(ctx, dc, nToDch, discordLogChannelID, debug)
-}
-
-func runWorker(ctx context.Context, nsKey string, nToDch chan model.User, userDBID string, corntab string) {
-	loc, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		log.Fatalf("invalid location :%s", err)
-	}
-
-	s, err := gocron.NewScheduler(
-		gocron.WithLocation(loc),
-	)
-	if err != nil {
-		log.Fatalf("can not create scheduler, %s", err)
-	}
-
-	ns, err := notion.NewNotion(nsKey, nToDch, userDBID)
-	if err != nil {
-		log.Fatalf("can not create notion service, %s", err)
-	}
-
-	_, err = s.NewJob(gocron.CronJob(corntab, false), gocron.NewTask(
-		func() {
-			log.Print("run job ")
-
-			err = ns.SendNotPaidInformation(ctx)
-			if err != nil {
-				log.Fatalf("worker: %s", err)
-			}
-		},
-	))
-	if err != nil {
-		log.Fatalf("can not start scheduler, %s", err)
-	}
-
-	s.Start()
-}
-
-func runDiscordBot(ctx context.Context,
-	dc *discordgo.Session, nToDch chan model.User, logChannelID string, debug bool,
-) {
-	des := discord.NewDiscordEventService(dc, nToDch, logChannelID, debug)
 
 	dc.Identify.Intents = discordgo.IntentsAll
 
-	err := dc.Open()
+	// Load Asia/Tokyo timezone for scheduler and use case day guard
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		log.Fatalf("invalid location: %s", err)
+	}
+
+	// Wire dependencies: gateway adapters -> use case
+	repo := notiongw.NewRepository(cfg.NotionToken, cfg.NotionUserDBID, cfg.NotionOthersDBID)
+	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
+	uc := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+
+	// In debug mode, fake the clock and run the job every minute
+	crontab := cfg.WorkerCrontab
+
+	if cfg.Debug {
+		clk := clock.NewMock()
+		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
+		uc.Clock = clk
+		crontab = "*/1 * * * *"
+	}
+
+	s, err := gocron.NewScheduler(gocron.WithLocation(loc))
+	if err != nil {
+		log.Fatalf("can not create scheduler: %s", err)
+	}
+
+	// Register the unpaid notification job on the configured cron schedule
+	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
+		log.Print("run job")
+
+		err := uc.Execute(ctx)
+		if err != nil {
+			log.Printf("worker: %s", err)
+		}
+	}))
+	if err != nil {
+		log.Fatalf("can not start scheduler: %s", err)
+	}
+
+	// Open Discord connection and start the scheduler
+	err = dc.Open()
 	if err != nil {
 		log.Fatalf("error opening connection: %s", err)
 	}
+	defer dc.Close()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 
-	go des.GetChanMsgAndDM(ctx)
+	s.Start()
 
+	// Block until termination signal
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
+
+	_ = s.Shutdown()
 }
