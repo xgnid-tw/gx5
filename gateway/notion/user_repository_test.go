@@ -15,7 +15,9 @@ import (
 
 func TestGetUsers_Success(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{makeUserPage("111", "Alice", "abc", "TWD")},
 			}, nil
@@ -35,7 +37,9 @@ func TestGetUsers_Success(t *testing.T) {
 
 func TestGetUsers_MultipleUsers(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{
 					makeUserPage("111", "Alice", "abc", "TWD"),
@@ -58,7 +62,9 @@ func TestGetUsers_MultipleUsers(t *testing.T) {
 
 func TestGetUsers_QueryError(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return nil, errors.New("api down")
 		},
 	}
@@ -72,15 +78,22 @@ func TestGetUsers_QueryError(t *testing.T) {
 
 func TestGetUsers_MissingDiscordID(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			page := notionapi.Page{
 				Properties: notionapi.Properties{
 					"discord_id": &notionapi.TitleProperty{Title: []notionapi.RichText{}},
-					"name":       &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "Alice"}}}},
-					"notion_id":  &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "abc"}}}},
-					"currency":   &notionapi.SelectProperty{Select: notionapi.Option{Name: "TWD"}},
+					"name": &notionapi.RichTextProperty{
+						RichText: []notionapi.RichText{
+							{Text: &notionapi.Text{Content: "Alice"}},
+						},
+					},
+					"notion_id": &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "abc"}}}},
+					"currency":  &notionapi.SelectProperty{Select: notionapi.Option{Name: "TWD"}},
 				},
 			}
+
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{page}}, nil
 		},
 	}
@@ -94,7 +107,9 @@ func TestGetUsers_MissingDiscordID(t *testing.T) {
 
 func TestGetUsers_MissingName(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			page := notionapi.Page{
 				Properties: notionapi.Properties{
 					"discord_id": &notionapi.TitleProperty{Title: []notionapi.RichText{{Text: &notionapi.Text{Content: "111"}}}},
@@ -103,6 +118,7 @@ func TestGetUsers_MissingName(t *testing.T) {
 					"currency":   &notionapi.SelectProperty{Select: notionapi.Option{Name: "TWD"}},
 				},
 			}
+
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{page}}, nil
 		},
 	}
@@ -116,15 +132,22 @@ func TestGetUsers_MissingName(t *testing.T) {
 
 func TestGetUsers_MissingNotionID(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			page := notionapi.Page{
 				Properties: notionapi.Properties{
 					"discord_id": &notionapi.TitleProperty{Title: []notionapi.RichText{{Text: &notionapi.Text{Content: "111"}}}},
-					"name":       &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "Alice"}}}},
-					"notion_id":  &notionapi.RichTextProperty{RichText: []notionapi.RichText{}},
-					"currency":   &notionapi.SelectProperty{Select: notionapi.Option{Name: "TWD"}},
+					"name": &notionapi.RichTextProperty{
+						RichText: []notionapi.RichText{
+							{Text: &notionapi.Text{Content: "Alice"}},
+						},
+					},
+					"notion_id": &notionapi.RichTextProperty{RichText: []notionapi.RichText{}},
+					"currency":  &notionapi.SelectProperty{Select: notionapi.Option{Name: "TWD"}},
 				},
 			}
+
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{page}}, nil
 		},
 	}
@@ -138,15 +161,22 @@ func TestGetUsers_MissingNotionID(t *testing.T) {
 
 func TestGetUsers_MissingCurrency(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			page := notionapi.Page{
 				Properties: notionapi.Properties{
 					"discord_id": &notionapi.TitleProperty{Title: []notionapi.RichText{{Text: &notionapi.Text{Content: "111"}}}},
-					"name":       &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "Alice"}}}},
-					"notion_id":  &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "abc"}}}},
-					"currency":   &notionapi.SelectProperty{},
+					"name": &notionapi.RichTextProperty{
+						RichText: []notionapi.RichText{
+							{Text: &notionapi.Text{Content: "Alice"}},
+						},
+					},
+					"notion_id": &notionapi.RichTextProperty{RichText: []notionapi.RichText{{Text: &notionapi.Text{Content: "abc"}}}},
+					"currency":  &notionapi.SelectProperty{},
 				},
 			}
+
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{page}}, nil
 		},
 	}
@@ -162,8 +192,11 @@ func TestGetUsers_MissingCurrency(t *testing.T) {
 
 func TestGetUnpaidAmount_Success(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			require.Equal(t, notionapi.DatabaseID("tx-db"), id)
+
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{
 					makeAmountPage("台幣", 1000),
@@ -182,7 +215,9 @@ func TestGetUnpaidAmount_Success(t *testing.T) {
 
 func TestGetUnpaidAmount_JPY(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{
 					makeAmountPage("日幣", 3000),
@@ -201,7 +236,9 @@ func TestGetUnpaidAmount_JPY(t *testing.T) {
 
 func TestGetUnpaidAmount_EmptyResult(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
 		},
 	}
@@ -215,7 +252,9 @@ func TestGetUnpaidAmount_EmptyResult(t *testing.T) {
 
 func TestGetUnpaidAmount_QueryError(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return nil, errors.New("api down")
 		},
 	}
@@ -229,7 +268,9 @@ func TestGetUnpaidAmount_QueryError(t *testing.T) {
 
 func TestGetUnpaidAmount_UnsupportedCurrency(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
 		},
 	}
@@ -243,10 +284,13 @@ func TestGetUnpaidAmount_UnsupportedCurrency(t *testing.T) {
 
 func TestGetUnpaidAmount_MissingAmountColumn(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			page := notionapi.Page{
 				Properties: notionapi.Properties{},
 			}
+
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{page}}, nil
 		},
 	}
@@ -262,8 +306,11 @@ func TestGetUnpaidAmount_MissingAmountColumn(t *testing.T) {
 
 func TestGetOthersUnpaidAmount_Success(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			require.Equal(t, notionapi.DatabaseID("others-db"), id)
+
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{
 					makeAmountPage("台幣", 800),
@@ -282,7 +329,9 @@ func TestGetOthersUnpaidAmount_Success(t *testing.T) {
 
 func TestGetOthersUnpaidAmount_JPY(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{
 				Results: []notionapi.Page{
 					makeAmountPage("日幣", 4000),
@@ -301,7 +350,9 @@ func TestGetOthersUnpaidAmount_JPY(t *testing.T) {
 
 func TestGetOthersUnpaidAmount_EmptyResult(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
 		},
 	}
@@ -315,7 +366,9 @@ func TestGetOthersUnpaidAmount_EmptyResult(t *testing.T) {
 
 func TestGetOthersUnpaidAmount_QueryError(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return nil, errors.New("api down")
 		},
 	}
@@ -329,7 +382,9 @@ func TestGetOthersUnpaidAmount_QueryError(t *testing.T) {
 
 func TestGetOthersUnpaidAmount_UnsupportedCurrency(t *testing.T) {
 	db := &mockDatabaseService{
-		queryFn: func(context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
 			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
 		},
 	}

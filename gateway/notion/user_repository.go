@@ -23,6 +23,7 @@ type Repository struct {
 
 func NewRepository(token string, userDBID string, othersDBID string) *Repository {
 	c := notionapi.NewClient(notionapi.Token(token))
+
 	return &Repository{
 		db:         c.Database,
 		userDBID:   notionapi.DatabaseID(userDBID),
@@ -70,7 +71,9 @@ func (r *Repository) GetUsers(ctx context.Context) ([]*domain.User, error) {
 	return users, nil
 }
 
-func (r *Repository) GetUnpaidAmount(ctx context.Context, userDatabaseID string, currency domain.Currency) (float64, error) {
+func (r *Repository) GetUnpaidAmount(
+	ctx context.Context, userDatabaseID string, currency domain.Currency,
+) (float64, error) {
 	col, ok := currencyColumnMap[currency]
 	if !ok {
 		return 0, fmt.Errorf("unsupported currency: %s", currency)

@@ -28,6 +28,7 @@ linters:
     - tagalign
     - testifylint
     - unparam
+    - testpackage
     - varnamelen
     - whitespace
     - wsl

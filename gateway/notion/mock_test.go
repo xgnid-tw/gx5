@@ -7,27 +7,41 @@ import (
 )
 
 type mockDatabaseService struct {
-	queryFn func(ctx context.Context, id notionapi.DatabaseID, req *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error)
+	queryFn func(
+		ctx context.Context, id notionapi.DatabaseID, req *notionapi.DatabaseQueryRequest,
+	) (*notionapi.DatabaseQueryResponse, error)
 }
 
-func (m *mockDatabaseService) Query(ctx context.Context, id notionapi.DatabaseID, req *notionapi.DatabaseQueryRequest) (*notionapi.DatabaseQueryResponse, error) {
+func (m *mockDatabaseService) Query(
+	ctx context.Context, id notionapi.DatabaseID, req *notionapi.DatabaseQueryRequest,
+) (*notionapi.DatabaseQueryResponse, error) {
 	return m.queryFn(ctx, id, req)
 }
 
-func (m *mockDatabaseService) Create(context.Context, *notionapi.DatabaseCreateRequest) (*notionapi.Database, error) {
+func (m *mockDatabaseService) Create(
+	context.Context, *notionapi.DatabaseCreateRequest,
+) (*notionapi.Database, error) {
 	panic("not implemented")
 }
 
-func (m *mockDatabaseService) Get(context.Context, notionapi.DatabaseID) (*notionapi.Database, error) {
+func (m *mockDatabaseService) Get(
+	context.Context, notionapi.DatabaseID,
+) (*notionapi.Database, error) {
 	panic("not implemented")
 }
 
-func (m *mockDatabaseService) Update(context.Context, notionapi.DatabaseID, *notionapi.DatabaseUpdateRequest) (*notionapi.Database, error) {
+func (m *mockDatabaseService) Update(
+	context.Context, notionapi.DatabaseID, *notionapi.DatabaseUpdateRequest,
+) (*notionapi.Database, error) {
 	panic("not implemented")
 }
 
 func newTestRepository(db notionapi.DatabaseService, userDBID string) *Repository {
-	return &Repository{db: db, userDBID: notionapi.DatabaseID(userDBID), othersDBID: notionapi.DatabaseID("others-db")}
+	return &Repository{
+		db:         db,
+		userDBID:   notionapi.DatabaseID(userDBID),
+		othersDBID: notionapi.DatabaseID("others-db"),
+	}
 }
 
 func makeUserPage(discordID, name, notionID, currency string) notionapi.Page {

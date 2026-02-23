@@ -96,6 +96,7 @@ func TestNotify_DMSendFails(t *testing.T) {
 			if callCount == 1 {
 				return &discordgo.Message{}, nil
 			}
+
 			return nil, errors.New("dm failed")
 		},
 	}

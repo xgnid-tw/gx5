@@ -22,6 +22,7 @@ var testLocation = time.UTC
 func mockClock(t time.Time) *clock.Mock {
 	clk := clock.NewMock()
 	clk.Set(t)
+
 	return clk
 }
 

@@ -12,9 +12,14 @@ import (
 	"github.com/xgnid-tw/gx5/port"
 )
 
+const (
+	twdNotificationThreshold = 2000
+	jpyNotificationThreshold = 8000
+)
+
 var notificationAmountLimit = map[domain.Currency]float64{
-	domain.CurrencyTWD: 2000,
-	domain.CurrencyJPY: 8000,
+	domain.CurrencyTWD: twdNotificationThreshold,
+	domain.CurrencyJPY: jpyNotificationThreshold,
 }
 
 type NotifyUnpaid struct {
@@ -54,7 +59,8 @@ func (uc *NotifyUnpaid) Execute(ctx context.Context) error {
 		}
 
 		if shouldNotify {
-			if err := uc.notifier.Notify(ctx, *u); err != nil {
+			err = uc.notifier.Notify(ctx, *u)
+			if err != nil {
 				log.Printf("notify %s: %s", u.Name, err)
 			}
 		}
