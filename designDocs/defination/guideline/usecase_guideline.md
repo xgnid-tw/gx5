@@ -166,7 +166,6 @@ Assign unique IDs in the BR-XXX format. Verify no duplicate IDs exist across all
 
 - **Mandatory includes:** The following infrastructure functions must be included based on conditions:
   - UC-902: Logging — Mandatory include only for operations involving data changes (create, update, delete, submit, etc.); not required for simple read operations.
-  - UC-903: Error Handling — Mandatory include for all use cases.
   - Note: UC-901 (User Authentication) is included only in use cases that assume the user is already authenticated.
 - **Business-level includes:** Other use cases required for executing this use case.
 - **Relationship description:** Briefly explain why the relationship is necessary.
