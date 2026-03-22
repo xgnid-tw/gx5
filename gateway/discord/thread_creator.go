@@ -30,9 +30,11 @@ func (tc *ThreadCreator) CreateThread(_ context.Context, channelID string, name 
 		return fmt.Errorf("error creating thread: %w", err)
 	}
 
-	_, err = tc.s.ChannelMessageSend(thread.ID, message)
-	if err != nil {
-		return fmt.Errorf("error sending thread message: %w", err)
+	if message != "" {
+		_, err = tc.s.ChannelMessageSend(thread.ID, message)
+		if err != nil {
+			return fmt.Errorf("error sending thread message: %w", err)
+		}
 	}
 
 	return nil
