@@ -12,6 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
+	"github.com/jomei/notionapi"
 
 	"github.com/xgnid-tw/gx5/config"
 	discordgw "github.com/xgnid-tw/gx5/gateway/discord"
@@ -34,6 +35,8 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize external service clients
+	nc := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
+
 	dc, err := discordgo.New(cfg.DiscordToken)
 	if err != nil {
 		log.Fatalf("can not create discord session: %s", err)
@@ -47,10 +50,16 @@ func main() {
 		log.Fatalf("invalid location: %s", err)
 	}
 
-	// Wire dependencies: gateway adapters -> use case
-	repo := notiongw.NewRepository(cfg.NotionToken, cfg.NotionUserDBID, cfg.NotionOthersDBID)
+	// Wire dependencies: gateway adapters -> use cases
+	repo := notiongw.NewRepository(nc.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
+	txRepo := notiongw.NewTransactionRepository(nc.Page)
 	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
-	uc := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	notifyUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo)
+
+	// Register Discord application commands
+	cmdHandler := discordgw.NewCommandHandler(dc, cfg.DiscordAppID)
+	discordgw.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute
 	crontab := cfg.WorkerCrontab
@@ -58,7 +67,7 @@ func main() {
 	if cfg.Debug {
 		clk := clock.NewMock()
 		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
-		uc.Clock = clk
+		notifyUC.Clock = clk
 		crontab = "*/1 * * * *"
 	}
 
@@ -71,7 +80,7 @@ func main() {
 	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
 		log.Print("run job")
 
-		err := uc.Execute(ctx)
+		err := notifyUC.Execute(ctx)
 		if err != nil {
 			log.Printf("worker: %s", err)
 		}
@@ -86,6 +95,14 @@ func main() {
 		log.Fatalf("error opening connection: %s", err)
 	}
 	defer dc.Close()
+
+	// Sync application commands after connection is open
+	err = cmdHandler.SyncCommands()
+	if err != nil {
+		log.Fatalf("error syncing commands: %s", err)
+	}
+
+	defer cmdHandler.UnregisterAll()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 

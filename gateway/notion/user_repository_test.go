@@ -395,3 +395,60 @@ func TestGetOthersUnpaidAmount_UnsupportedCurrency(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "unsupported currency")
 }
+
+// --- GetUserByDiscordID tests ---
+
+func TestGetUserByDiscordID_Success(t *testing.T) {
+	db := &mockDatabaseService{
+		queryFn: func(
+			_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
+			require.Equal(t, notionapi.DatabaseID("user-db"), id)
+
+			return &notionapi.DatabaseQueryResponse{
+				Results: []notionapi.Page{makeUserPage("111", "Alice", "abc", "TWD")},
+			}, nil
+		},
+	}
+
+	repo := newTestRepository(db, "user-db")
+	user, err := repo.GetUserByDiscordID(context.Background(), "111")
+
+	require.NoError(t, err)
+	require.Equal(t, "111", user.DiscordID)
+	require.Equal(t, "Alice", user.Name)
+	require.Equal(t, "abc", user.NotionID)
+	require.Equal(t, domain.CurrencyTWD, user.Currency)
+}
+
+func TestGetUserByDiscordID_NotFound(t *testing.T) {
+	db := &mockDatabaseService{
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
+			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
+		},
+	}
+
+	repo := newTestRepository(db, "user-db")
+	_, err := repo.GetUserByDiscordID(context.Background(), "999")
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "user not found for discord_id")
+}
+
+func TestGetUserByDiscordID_QueryError(t *testing.T) {
+	db := &mockDatabaseService{
+		queryFn: func(
+			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
+			return nil, errors.New("api down")
+		},
+	}
+
+	repo := newTestRepository(db, "user-db")
+	_, err := repo.GetUserByDiscordID(context.Background(), "111")
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "notion database query failed")
+}

@@ -10,6 +10,7 @@ type Config struct {
 	NotionUserDBID      string
 	NotionOthersDBID    string
 	DiscordToken        string
+	DiscordAppID        string
 	DiscordLogChannelID string
 	WorkerCrontab       string
 	Debug               bool
@@ -21,6 +22,7 @@ func Load() (Config, error) {
 		NotionUserDBID:      os.Getenv("NOTION_USER_DB_ID"),
 		NotionOthersDBID:    os.Getenv("NOTION_OTHERS_DB_ID"),
 		DiscordToken:        os.Getenv("DISCORD_TOKEN"),
+		DiscordAppID:        os.Getenv("DISCORD_APP_ID"),
 		DiscordLogChannelID: os.Getenv("DISCORD_GUILD_LOG_CHANNEL_ID"),
 		WorkerCrontab:       os.Getenv("WORKER_CORNTAB"),
 		Debug:               os.Getenv("DEBUG") == "1",
@@ -40,6 +42,10 @@ func Load() (Config, error) {
 
 	if cfg.DiscordToken == "" {
 		return Config{}, fmt.Errorf("DISCORD_TOKEN is required")
+	}
+
+	if cfg.DiscordAppID == "" {
+		return Config{}, fmt.Errorf("DISCORD_APP_ID is required")
 	}
 
 	if cfg.DiscordLogChannelID == "" {
