@@ -1,0 +1,70 @@
+package usecase
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/xgnid-tw/gx5/domain"
+	"github.com/xgnid-tw/gx5/port"
+)
+
+type CreateOrder struct {
+	repo          port.OrderRepository
+	threadCreator port.ThreadCreator
+	ownerID       string
+}
+
+func NewCreateOrder(
+	repo port.OrderRepository, threadCreator port.ThreadCreator, ownerID string,
+) *CreateOrder {
+	return &CreateOrder{
+		repo:          repo,
+		threadCreator: threadCreator,
+		ownerID:       ownerID,
+	}
+}
+
+func (uc *CreateOrder) Execute(
+	ctx context.Context, callerID string, channelID string, order domain.Order,
+) error {
+	if callerID != uc.ownerID {
+		return fmt.Errorf("unauthorized: only the bot owner can create orders")
+	}
+
+	if order.ThreadName == "" {
+		return fmt.Errorf("orderTitle is required")
+	}
+
+	message := buildThreadMessage(order)
+
+	err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
+	if err != nil {
+		return fmt.Errorf("create thread: %w", err)
+	}
+
+	err = uc.repo.CreateOrder(ctx, order)
+	if err != nil {
+		return fmt.Errorf("create order record: %w", err)
+	}
+
+	return nil
+}
+
+func buildThreadMessage(order domain.Order) string {
+	var lines []string
+
+	if order.ShopURL != "" {
+		lines = append(lines, order.ShopURL)
+	}
+
+	if order.Tag != "" {
+		lines = append(lines, fmt.Sprintf("@%s", order.Tag))
+	}
+
+	if order.Deadline != "" {
+		lines = append(lines, fmt.Sprintf("截止時間: %s", order.Deadline))
+	}
+
+	return strings.Join(lines, "\n")
+}
