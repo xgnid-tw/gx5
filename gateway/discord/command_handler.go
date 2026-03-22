@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
@@ -29,9 +30,16 @@ func NewCommandHandler(session *discordgo.Session, appID string) *CommandHandler
 				handler(s, i)
 			}
 		case discordgo.InteractionModalSubmit:
-			if handler, ok := h.handlers["modal:"+i.ModalSubmitData().CustomID[:modalPrefixLen(i.ModalSubmitData().CustomID)]]; ok {
+			customID := i.ModalSubmitData().CustomID
+			prefix := customID[:modalPrefixLen(customID)]
+
+			if handler, ok := h.handlers["modal:"+prefix]; ok {
 				handler(s, i)
 			}
+		case discordgo.InteractionPing,
+			discordgo.InteractionMessageComponent,
+			discordgo.InteractionApplicationCommandAutocomplete:
+			// not handled
 		}
 	})
 
@@ -60,7 +68,7 @@ func (h *CommandHandler) SyncCommands() error {
 	for _, cmd := range h.commands {
 		registered, err := h.session.ApplicationCommandCreate(h.appID, "", cmd)
 		if err != nil {
-			return err
+			return fmt.Errorf("create command %q: %w", cmd.Name, err)
 		}
 
 		h.registered = append(h.registered, registered)

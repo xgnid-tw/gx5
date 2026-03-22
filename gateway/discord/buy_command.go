@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	buyCommandName  = "buy"
-	buyModalPrefix  = "buy_modal"
-	amountInputID   = "jpy_amount"
+	buyCommandName     = "buy"
+	buyModalPrefix     = "buy_modal"
+	amountInputID      = "jpy_amount"
+	modalCustomIDParts = 3
 )
 
 // RegisterBuyCommand registers the /buy message command and its modal handler.
@@ -95,8 +96,8 @@ func handleBuyModal(
 	data := i.ModalSubmitData()
 
 	// Parse customID: buy_modal:<targetDiscordID>:<threadTitle>
-	parts := strings.SplitN(data.CustomID, ":", 3)
-	if len(parts) != 3 {
+	parts := strings.SplitN(data.CustomID, ":", modalCustomIDParts)
+	if len(parts) != modalCustomIDParts {
 		respondError(s, i, "invalid modal data")
 		return
 	}

@@ -94,15 +94,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("error opening connection: %s", err)
 	}
-	defer dc.Close()
 
 	// Sync application commands after connection is open
 	err = cmdHandler.SyncCommands()
 	if err != nil {
+		_ = dc.Close()
+
 		log.Fatalf("error syncing commands: %s", err)
 	}
 
 	defer cmdHandler.UnregisterAll()
+	defer dc.Close()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 
