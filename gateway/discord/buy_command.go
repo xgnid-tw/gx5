@@ -9,7 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/xgnid-tw/gx5/usecase"
+	"github.com/xgnid-tw/gx5/port"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 // RegisterBuyCommand registers the /buy message command and its modal handler.
-func RegisterBuyCommand(ch *CommandHandler, uc *usecase.RegisterBuyRecord) {
+func RegisterBuyCommand(ch *CommandHandler, uc port.BuyRecordRegisterer) {
 	cmd := &discordgo.ApplicationCommand{
 		Name: buyCommandName,
 		Type: discordgo.MessageApplicationCommand,
@@ -90,7 +90,7 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func handleBuyModal(
-	s *discordgo.Session, i *discordgo.InteractionCreate, uc *usecase.RegisterBuyRecord,
+	s *discordgo.Session, i *discordgo.InteractionCreate, uc port.BuyRecordRegisterer,
 ) {
 	data := i.ModalSubmitData()
 
