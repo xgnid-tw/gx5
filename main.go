@@ -92,16 +92,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("error opening connection: %s", err)
 	}
-	defer dc.Close()
 
-	// Register slash commands
+	// Register slash commands before setting up defers so Fatalf does not skip cleanup
 	cmdHandler := discordgw.NewCommandHandler(dc, cfg.DiscordAppID)
-	defer cmdHandler.UnregisterAll()
 
 	err = cmdHandler.RegisterCommand(discordgw.NewOrderCommand(), discordgw.HandleNewOrder(createOrderUC))
 	if err != nil {
 		log.Fatalf("error registering newOrder command: %s", err)
 	}
+
+	defer dc.Close()
+	defer func() {
+		unregErr := cmdHandler.UnregisterAll()
+		if unregErr != nil {
+			log.Printf("error unregistering commands: %s", unregErr)
+		}
+	}()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 

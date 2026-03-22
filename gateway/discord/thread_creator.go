@@ -8,8 +8,12 @@ import (
 )
 
 type threadSession interface {
-	ThreadStartComplex(channelID string, data *discordgo.ThreadStart, options ...discordgo.RequestOption) (*discordgo.Channel, error)
-	ChannelMessageSend(channelID string, content string, options ...discordgo.RequestOption) (*discordgo.Message, error)
+	ThreadStartComplex(
+		channelID string, data *discordgo.ThreadStart, options ...discordgo.RequestOption,
+	) (*discordgo.Channel, error)
+	ChannelMessageSend(
+		channelID string, content string, options ...discordgo.RequestOption,
+	) (*discordgo.Message, error)
 }
 
 // ThreadCreator implements port.ThreadCreator using the Discord API.

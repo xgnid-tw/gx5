@@ -3,11 +3,11 @@ package domain
 type Tag string
 
 const (
-	Tag315Pro Tag = "315pro"
+	Tag315Pro  Tag = "315pro"
 	TagGakumas Tag = "学マス"
-	Tag283Pro Tag = "283pro"
-	Tag346Pro Tag = "346pro"
-	Tag765Pro Tag = "765pro"
+	Tag283Pro  Tag = "283pro"
+	Tag346Pro  Tag = "346pro"
+	Tag765Pro  Tag = "765pro"
 )
 
 type Order struct {
