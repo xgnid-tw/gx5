@@ -11,8 +11,8 @@ type threadSession interface {
 	ThreadStartComplex(
 		channelID string, data *discordgo.ThreadStart, options ...discordgo.RequestOption,
 	) (*discordgo.Channel, error)
-	ChannelMessageSend(
-		channelID string, content string, options ...discordgo.RequestOption,
+	ChannelMessageSendComplex(
+		channelID string, data *discordgo.MessageSend, options ...discordgo.RequestOption,
 	) (*discordgo.Message, error)
 }
 
@@ -35,7 +35,12 @@ func (tc *ThreadCreator) CreateThread(_ context.Context, channelID string, name 
 	}
 
 	if message != "" {
-		_, err = tc.s.ChannelMessageSend(thread.ID, message)
+		_, err = tc.s.ChannelMessageSendComplex(thread.ID, &discordgo.MessageSend{
+			Content: message,
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeRoles},
+			},
+		})
 		if err != nil {
 			return fmt.Errorf("error sending thread message: %w", err)
 		}
