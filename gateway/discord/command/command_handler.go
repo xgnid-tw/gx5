@@ -1,4 +1,4 @@
-package discord
+package command
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// CommandHandler manages Discord slash command registration and dispatch.
-type CommandHandler struct {
+// Handler manages Discord slash command registration and dispatch.
+type Handler struct {
 	s       *discordgo.Session
 	appID   string
 	cmds    []*discordgo.ApplicationCommand
@@ -16,8 +16,8 @@ type CommandHandler struct {
 	cleanup func()
 }
 
-func NewCommandHandler(s *discordgo.Session, appID string) *CommandHandler {
-	h := &CommandHandler{
+func NewHandler(s *discordgo.Session, appID string) *Handler {
+	h := &Handler{
 		s:      s,
 		appID:  appID,
 		routes: make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)),
@@ -37,7 +37,7 @@ func NewCommandHandler(s *discordgo.Session, appID string) *CommandHandler {
 	return h
 }
 
-func (h *CommandHandler) RegisterCommand(
+func (h *Handler) RegisterCommand(
 	cmd *discordgo.ApplicationCommand,
 	handler func(s *discordgo.Session, i *discordgo.InteractionCreate),
 ) error {
@@ -52,7 +52,7 @@ func (h *CommandHandler) RegisterCommand(
 	return nil
 }
 
-func (h *CommandHandler) UnregisterAll() error {
+func (h *Handler) UnregisterAll() error {
 	if h.cleanup != nil {
 		h.cleanup()
 	}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/xgnid-tw/gx5/config"
 	discordgw "github.com/xgnid-tw/gx5/gateway/discord"
+	discordcmd "github.com/xgnid-tw/gx5/gateway/discord/command"
 	notiongw "github.com/xgnid-tw/gx5/gateway/notion"
 	"github.com/xgnid-tw/gx5/usecase"
 )
@@ -94,9 +95,9 @@ func main() {
 	}
 
 	// Register slash commands before setting up defers so Fatalf does not skip cleanup
-	cmdHandler := discordgw.NewCommandHandler(dc, cfg.DiscordAppID)
+	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	err = cmdHandler.RegisterCommand(discordgw.NewOrderCommand(), discordgw.HandleNewOrder(createOrderUC))
+	err = cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
 	if err != nil {
 		log.Fatalf("error registering newOrder command: %s", err)
 	}
