@@ -42,7 +42,7 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Get the target message from the resolved data
 	targetMsg, ok := data.Resolved.Messages[data.TargetID]
 	if !ok {
-		respondError(s, i, "could not resolve target message")
+		respondError(s, i, "無法取得目標訊息")
 		return
 	}
 
@@ -51,12 +51,12 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Get thread title from the channel (must be in a thread)
 	channel, err := s.Channel(i.ChannelID)
 	if err != nil {
-		respondError(s, i, "could not get channel info")
+		respondError(s, i, "無法取得頻道資訊")
 		return
 	}
 
 	if !channel.IsThread() {
-		respondError(s, i, "this command must be used in a thread")
+		respondError(s, i, "此指令只能在討論串中使用")
 		return
 	}
 
@@ -70,15 +70,15 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
 			CustomID: customID,
-			Title:    "Register Buy Record",
+			Title:    "確認購買",
 			Components: []discordgo.MessageComponent{
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
 						discordgo.TextInput{
 							CustomID:    amountInputID,
-							Label:       "JPY Amount",
+							Label:       "日幣",
 							Style:       discordgo.TextInputShort,
-							Placeholder: "e.g. 3000",
+							Placeholder: "例: 3000",
 							Required:    true,
 						},
 					},
@@ -110,7 +110,7 @@ func handleBuyModal(
 	// Parse customID: buy_modal:<targetDiscordID>:<threadTitle>
 	parts := strings.SplitN(data.CustomID, ":", modalCustomIDParts)
 	if len(parts) != modalCustomIDParts {
-		respondError(s, i, "invalid modal data")
+		respondError(s, i, "無效的表單資料")
 		return
 	}
 
@@ -143,7 +143,7 @@ func handleBuyModal(
 
 	jpyAmount, err := strconv.ParseFloat(jpyStr, 64)
 	if err != nil || jpyAmount <= 0 {
-		respondError(s, i, "invalid JPY amount")
+		respondError(s, i, "無效的日幣金額")
 		return
 	}
 
@@ -152,7 +152,7 @@ func handleBuyModal(
 	err = uc.Execute(ctx, targetDiscordID, jpyAmount, itemName)
 	if err != nil {
 		log.Printf("register buy record failed: %s", err)
-		respondError(s, i, "failed to register buy record")
+		respondError(s, i, "登記失敗")
 
 		return
 	}
