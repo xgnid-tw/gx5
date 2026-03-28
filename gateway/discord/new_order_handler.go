@@ -26,19 +26,19 @@ func NewOrderCommand() *discordgo.ApplicationCommand {
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "deadline",
 				Description: "Order deadline (YYYY-MM-DD)",
-				Required:    false,
+				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "shopurl",
 				Description: "Shop URL",
-				Required:    false,
+				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "tags",
 				Description: "Tag",
-				Required:    false,
+				Required:    true,
 				Choices: []*discordgo.ApplicationCommandOptionChoice{
 					{Name: "315pro", Value: "315pro"},
 					{Name: "学マス", Value: "学マス"},

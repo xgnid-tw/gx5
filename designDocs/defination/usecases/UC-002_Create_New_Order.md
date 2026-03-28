@@ -6,7 +6,7 @@
 |---|---|
 | Use Case ID | UC-002 |
 | Use Case Name | Create New Order |
-| Version | 1.1 |
+| Version | 1.2 |
 | Status | Draft |
 | Date | 2026/03/18 |
 | Author | — |
@@ -26,7 +26,7 @@ The bot operator executes the `/newOrder` slash command with order details. The 
 ### Scope
 
 **In scope:**
-- Parsing slash command parameters (`orderTitle`, `deadline`, `shopURL`, `tags`)
+- Parsing slash command parameters (`orderTitle`, `deadline`, `shopURL`, `tags`) — all required
 - Creating a Discord thread in the channel where the command was issued
 - Sending the formatted first message in the created thread
 - Inserting a new record into the Notion Order List database (TBL-004)
@@ -87,7 +87,7 @@ None.
 
 ### Summary Flow
 
-1. User executes `/newOrder [orderTitle] [deadline] [shopURL] [tags]` in a Discord channel
+1. User executes `/newOrder orderTitle deadline shopURL tags` in a Discord channel (all parameters required)
 2. System verifies the invoking user is the authorized operator (BR-015); if not, reject with an error
 3. System validates required parameter `orderTitle` is present (BR-007)
 4. System creates a new Discord thread in the current channel with title `orderTitle`
@@ -105,8 +105,8 @@ At this time, no specific business usage calling this function has been identifi
 
 | ID | Rule Name | Description | Exception |
 |---|---|---|---|
-| BR-007 | Required Order Title | `orderTitle` is a required parameter; the command must fail with an error if not provided | None |
-| BR-008 | Thread First Message Format | The first message in the created thread follows the format: line 1 = `shopURL`, line 2 = tag mentions (each prefixed with `@`), line 3 = deadline display (`截止時間: {deadline}`) | If `shopURL` is empty, the line is omitted; if `tags` is empty, the mention line is omitted; if `deadline` is empty, the deadline line is omitted |
+| BR-007 | Required Parameters | All parameters (`orderTitle`, `deadline`, `shopURL`, `tags`) are required; Discord enforces this at the command level | None |
+| BR-008 | Thread First Message Format | The first message in the created thread follows the format: line 1 = `shopURL`, line 2 = tag mentions (each prefixed with `@`), line 3 = deadline display (`截止時間: {deadline}`) | None (all fields are always present) |
 | BR-009 | Notion Record Mapping | The Notion record maps as follows: `threadName` ← `orderTitle` (Title), `deadline` ← `deadline` (Date, ISO-8601), `tags` ← `tags` (Select, single value) | `shopURL` is not stored in Notion (TBL-004 has no such column) |
 | BR-010 | Tag Values | Tag must correspond to a valid select option defined in TBL-004: `315pro`, `学マス`, `283pro`, `346pro`, `765pro` (single value only) | Unknown tag is passed as-is; Notion API will reject invalid values |
 | BR-015 | Operator Authorization | Only the authorized operator (configured via `DISCORD_OWNER_ID` env var) may execute this command; all other users are rejected | None |
@@ -148,3 +148,4 @@ None.
 |---|---|---|---|
 | 1.0 | 2026/03/18 | — | Initial draft |
 | 1.1 | 2026/03/18 | — | Restrict command to authorized operator only (BR-015, configured via `DISCORD_OWNER_ID` env var); update actor, pre-conditions, and flow |
+| 1.2 | 2026/03/28 | — | All parameters (`orderTitle`, `deadline`, `shopURL`, `tags`) are now required; `tags` uses Discord Choices dropdown (BR-010) |
