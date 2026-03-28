@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"log"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -78,11 +77,11 @@ func HandleNewOrder(uc *usecase.CreateOrder) func(s *discordgo.Session, i *disco
 
 		err := uc.Execute(context.Background(), i.ChannelID, order)
 		if err != nil {
-			respondToInteraction(s, i, "建立訂單失敗")
+			respondError(s, i, "建立訂單失敗")
 			return
 		}
 
-		respondToInteraction(s, i, "訂單已建立: "+order.ThreadName)
+		respondSuccess(s, i, "訂單已建立: "+order.ThreadName)
 	}
 }
 
@@ -96,16 +95,4 @@ func tagChoices() []*discordgo.ApplicationCommandOptionChoice {
 	}
 
 	return choices
-}
-
-func respondToInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {
-	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: message,
-		},
-	})
-	if err != nil {
-		log.Printf("error responding to interaction: %s", err)
-	}
 }
