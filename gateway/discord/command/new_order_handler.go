@@ -7,15 +7,19 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/xgnid-tw/gx5/domain"
-	"github.com/xgnid-tw/gx5/usecase"
+	"github.com/xgnid-tw/gx5/port"
 )
 
-// NewOrderCommand returns the Discord slash command definition for /neworder.
-func NewOrderCommand() *discordgo.ApplicationCommand {
+const (
+	newOrderCommandName = "neworder"
+)
+
+// RegisterNewOrderCommand registers the /neworder slash command and its handler.
+func RegisterNewOrderCommand(ch *Handler, uc port.OrderCreator) {
 	adminPerm := int64(discordgo.PermissionAdministrator)
 
-	return &discordgo.ApplicationCommand{
-		Name:                     "neworder",
+	cmd := &discordgo.ApplicationCommand{
+		Name:                     newOrderCommandName,
 		Description:              "建立新的團購訂單",
 		DefaultMemberPermissions: &adminPerm,
 		Options: []*discordgo.ApplicationCommandOption{
@@ -46,44 +50,49 @@ func NewOrderCommand() *discordgo.ApplicationCommand {
 			},
 		},
 	}
+
+	ch.RegisterCommand(cmd, func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		handleNewOrder(s, i, uc)
+	})
 }
 
-// HandleNewOrder returns a Discord interaction handler for the /neworder command.
-func HandleNewOrder(uc *usecase.CreateOrder) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		opts := i.ApplicationCommandData().Options
-		optMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(opts))
+func handleNewOrder(
+	s *discordgo.Session, i *discordgo.InteractionCreate, uc port.OrderCreator,
+) {
+	opts := i.ApplicationCommandData().Options
+	optMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(opts))
 
-		for _, opt := range opts {
-			optMap[opt.Name] = opt
-		}
-
-		order := domain.Order{}
-
-		if v, ok := optMap["ordertitle"]; ok {
-			order.ThreadName = v.StringValue()
-		}
-
-		if v, ok := optMap["deadline"]; ok {
-			order.Deadline = v.StringValue()
-		}
-
-		if v, ok := optMap["shopurl"]; ok {
-			order.ShopURL = v.StringValue()
-		}
-
-		if v, ok := optMap["tags"]; ok {
-			order.Tag = domain.Tag(v.StringValue())
-		}
-
-		err := uc.Execute(context.Background(), i.ChannelID, order)
-		if err != nil {
-			respondToInteraction(s, i, "建立訂單失敗")
-			return
-		}
-
-		respondToInteraction(s, i, "訂單已建立: "+order.ThreadName)
+	for _, opt := range opts {
+		optMap[opt.Name] = opt
 	}
+
+	order := domain.Order{}
+
+	if v, ok := optMap["ordertitle"]; ok {
+		order.ThreadName = v.StringValue()
+	}
+
+	if v, ok := optMap["deadline"]; ok {
+		order.Deadline = v.StringValue()
+	}
+
+	if v, ok := optMap["shopurl"]; ok {
+		order.ShopURL = v.StringValue()
+	}
+
+	if v, ok := optMap["tags"]; ok {
+		order.Tag = domain.Tag(v.StringValue())
+	}
+
+	err := uc.Execute(context.Background(), i.ChannelID, order)
+	if err != nil {
+		log.Printf("create order failed: %s", err)
+		respondError(s, i, "建立訂單失敗")
+
+		return
+	}
+
+	respondSuccess(s, i, "訂單已建立: "+order.ThreadName)
 }
 
 func tagChoices() []*discordgo.ApplicationCommandOptionChoice {
@@ -96,16 +105,4 @@ func tagChoices() []*discordgo.ApplicationCommandOptionChoice {
 	}
 
 	return choices
-}
-
-func respondToInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {
-	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: message,
-		},
-	})
-	if err != nil {
-		log.Printf("error responding to interaction: %s", err)
-	}
 }

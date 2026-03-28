@@ -11,26 +11,6 @@ import (
 	"github.com/xgnid-tw/gx5/domain"
 )
 
-type mockPageService struct {
-	createFn func(ctx context.Context, req *notionapi.PageCreateRequest) (*notionapi.Page, error)
-}
-
-func (m *mockPageService) Create(
-	ctx context.Context, req *notionapi.PageCreateRequest,
-) (*notionapi.Page, error) {
-	return m.createFn(ctx, req)
-}
-
-func (m *mockPageService) Get(context.Context, notionapi.PageID) (*notionapi.Page, error) {
-	panic("not implemented")
-}
-
-func (m *mockPageService) Update(
-	context.Context, notionapi.PageID, *notionapi.PageUpdateRequest,
-) (*notionapi.Page, error) {
-	panic("not implemented")
-}
-
 func TestCreateTransaction_Success(t *testing.T) {
 	var capturedReq *notionapi.PageCreateRequest
 
