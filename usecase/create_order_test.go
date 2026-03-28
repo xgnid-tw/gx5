@@ -30,7 +30,7 @@ func TestCreateOrder_ThreadCreationError(t *testing.T) {
 	tc := mocks.NewThreadCreator(t)
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", mock.Anything).
-		Return(errors.New("discord error"))
+		Return("", errors.New("discord error"))
 
 	uc := usecase.NewCreateOrder(repo, tc, nil)
 
@@ -47,7 +47,7 @@ func TestCreateOrder_NotionError(t *testing.T) {
 	tc := mocks.NewThreadCreator(t)
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", mock.Anything).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, domain.Order{ThreadName: "test order"}).
 		Return(errors.New("notion error"))
 
@@ -76,7 +76,7 @@ func TestCreateOrder_Success_AllFields(t *testing.T) {
 	expectedMessage := "https://shop.example.com\n<@&123456>\n截止時間: 2026-04-01"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", expectedMessage).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -96,7 +96,7 @@ func TestCreateOrder_Success_OnlyTitle(t *testing.T) {
 	}
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "minimal order", "").
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -119,7 +119,7 @@ func TestCreateOrder_Success_PartialFields(t *testing.T) {
 	expectedMessage := "截止時間: 2026-05-15"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "partial order", expectedMessage).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -142,7 +142,7 @@ func TestCreateOrder_Success_ShopURLOnly(t *testing.T) {
 	expectedMessage := "https://example.com"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "url order", expectedMessage).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -166,7 +166,7 @@ func TestCreateOrder_Success_TagOnly(t *testing.T) {
 	expectedMessage := "<@&789012>"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "tag order", expectedMessage).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -190,7 +190,7 @@ func TestCreateOrder_Success_TagWithoutRoleID(t *testing.T) {
 	expectedMessage := "@283pro"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "fallback order", expectedMessage).
-		Return(nil)
+		Return("thread-id", nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 

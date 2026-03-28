@@ -34,7 +34,7 @@ func (uc *CreateOrder) Execute(
 
 	message := buildThreadMessage(order, uc.tagRoleMap)
 
-	err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
+	_, err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
 	if err != nil {
 		return fmt.Errorf("create thread: %w", err)
 	}
