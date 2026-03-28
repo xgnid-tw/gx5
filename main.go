@@ -36,14 +36,14 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize external service clients
-	nc := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
-
 	dc, err := discordgo.New(cfg.DiscordToken)
 	if err != nil {
 		log.Fatalf("can not create discord session: %s", err)
 	}
 
 	dc.Identify.Intents = discordgo.IntentsAll
+
+	notionClient := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
 
 	// Load Asia/Tokyo timezone for scheduler and use case day guard
 	loc, err := time.LoadLocation("Asia/Tokyo")
@@ -52,14 +52,21 @@ func main() {
 	}
 
 	// Wire dependencies: gateway adapters -> use cases
-	repo := notiongw.NewRepository(nc.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
-	txRepo := notiongw.NewTransactionRepository(nc.Page)
+	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
 	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
-	notifyUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+
+	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
+	threadCreator := discordgw.NewThreadCreator(dc)
+	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
+
+	txRepo := notiongw.NewTransactionRepository(notionClient.Page)
 	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo)
 
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
+
+	cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
 	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute
@@ -68,7 +75,7 @@ func main() {
 	if cfg.Debug {
 		clk := clock.NewMock()
 		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
-		notifyUC.Clock = clk
+		notifyUnpaidUC.Clock = clk
 		crontab = "*/1 * * * *"
 	}
 
@@ -81,7 +88,7 @@ func main() {
 	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
 		log.Print("run job")
 
-		err := notifyUC.Execute(ctx)
+		err := notifyUnpaidUC.Execute(ctx)
 		if err != nil {
 			log.Printf("worker: %s", err)
 		}
