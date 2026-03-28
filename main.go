@@ -61,7 +61,7 @@ func main() {
 	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
 
 	txRepo := notiongw.NewTransactionRepository(notionClient.Page)
-	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo)
+	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo, cfg.ExchangeRateJPYTWD)
 
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)

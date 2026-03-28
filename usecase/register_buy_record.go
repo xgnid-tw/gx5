@@ -8,17 +8,16 @@ import (
 	"github.com/xgnid-tw/gx5/port"
 )
 
-const JPYToTWDRate = 0.24
-
 type RegisterBuyRecord struct {
-	userRepo port.UserRepository
-	txRepo   port.TransactionRepository
+	userRepo     port.UserRepository
+	txRepo       port.TransactionRepository
+	jpyToTWDRate float64
 }
 
 func NewRegisterBuyRecord(
-	userRepo port.UserRepository, txRepo port.TransactionRepository,
+	userRepo port.UserRepository, txRepo port.TransactionRepository, jpyToTWDRate float64,
 ) *RegisterBuyRecord {
-	return &RegisterBuyRecord{userRepo: userRepo, txRepo: txRepo}
+	return &RegisterBuyRecord{userRepo: userRepo, txRepo: txRepo, jpyToTWDRate: jpyToTWDRate}
 }
 
 func (uc *RegisterBuyRecord) Execute(
@@ -29,7 +28,7 @@ func (uc *RegisterBuyRecord) Execute(
 		return fmt.Errorf("get user by discord id: %w", err)
 	}
 
-	twdAmount := jpyAmount * JPYToTWDRate
+	twdAmount := jpyAmount * uc.jpyToTWDRate
 
 	tx := domain.Transaction{
 		ItemName:   itemName,

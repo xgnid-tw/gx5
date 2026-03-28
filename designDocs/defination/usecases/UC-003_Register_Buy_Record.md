@@ -6,9 +6,9 @@
 |---|---|
 | Use Case ID | UC-003 |
 | Use Case Name | Register Buy Record |
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Draft |
-| Date | 2026/03/18 |
+| Date | 2026/03/28 |
 | Author | — |
 
 ---
@@ -29,14 +29,14 @@ A guild member executes the `/buy` slash command as a reply to another member's 
 - Identifying the target member from the replied-to message author
 - Prompting for and receiving the JPY amount
 - Looking up the target member's personal Notion database (TBL-002) via TBL-001
-- Calculating the TWD equivalent using a fixed exchange rate
+- Calculating the TWD equivalent using a configurable exchange rate
 - Inserting a new transaction record into the target member's TBL-002
 - Replying with confirmation message
 
 **Out of scope:**
 - Editing or deleting existing transaction records
 - Handling members who only exist in TBL-003 (其他 database)
-- Dynamic exchange rate fetching (uses a constant)
+- Dynamic exchange rate fetching from external APIs (rate is configured via env var)
 - Payment status updates
 
 ---
@@ -114,8 +114,8 @@ At this time, no specific business usage calling this function has been identifi
 
 | ID | Rule Name | Description | Exception |
 |---|---|---|---|
-| BR-011 | Fixed Exchange Rate | TWD amount is calculated as `JPY amount × 0.24`; the exchange rate is a constant defined in code | None |
-| BR-012 | Item Name from Thread Title | The `品項` column is populated with the Discord thread title where the `/buy` command was executed | None |
+| BR-011 | Fixed Exchange Rate | TWD amount is calculated as `JPY amount × EXCHANGE_RATE_JPY_TWD`; the exchange rate is loaded from the `EXCHANGE_RATE_JPY_TWD` environment variable | None |
+| BR-012 | Item Name from Thread Title | The `品項` column is populated with a user-provided item name from the modal. If empty, defaults to the Discord thread title | None |
 | BR-013 | Default Payment Status | New records are always created with `付款狀況` = `尚未付款` (unpaid) | None |
 | BR-014 | Target Member Lookup | The target member is identified by the Discord ID of the replied-to message author; this ID is matched against `discord_id` in TBL-001 to resolve the member's `notion_id` (TBL-002 database ID) | If the replied-to user is not found in TBL-001, the operation fails with an error |
 
@@ -137,7 +137,7 @@ None.
 
 ### Operations and Maintenance Requirements
 
-- The exchange rate constant (0.24) is hardcoded; changes require code modification and redeployment
+- The exchange rate is configurable via the `EXCHANGE_RATE_JPY_TWD` environment variable; changes do not require code modification
 - TBL-001 must be kept up to date with correct `discord_id` → `notion_id` mappings
 - Adding new members requires creating a new TBL-002 database in Notion and registering the member in TBL-001
 
@@ -155,3 +155,4 @@ None.
 | Version | Date | Author | Description |
 |---|---|---|---|
 | 1.0 | 2026/03/18 | — | Initial draft |
+| 1.1 | 2026/03/28 | — | Add optional item name field in modal; exchange rate loaded from env var |

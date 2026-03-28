@@ -16,6 +16,7 @@ const (
 	buyCommandName     = "buy"
 	buyModalPrefix     = "buy_modal"
 	amountInputID      = "jpy_amount"
+	itemNameInputID    = "item_name"
 	modalCustomIDParts = 3
 )
 
@@ -82,6 +83,17 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 						},
 					},
 				},
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.TextInput{
+							CustomID: itemNameInputID,
+							Label:    "品項",
+							Style:    discordgo.TextInputShort,
+							Required: false,
+							Value:    threadTitle,
+						},
+					},
+				},
 			},
 		},
 	})
@@ -105,17 +117,28 @@ func handleBuyModal(
 	targetDiscordID := parts[1]
 	threadTitle := parts[2]
 
-	// Extract JPY amount from modal input
+	// Extract JPY amount and item name from modal inputs
 	var jpyStr string
+
+	var itemName string
 
 	for _, row := range data.Components {
 		if ar, ok := row.(*discordgo.ActionsRow); ok {
 			for _, comp := range ar.Components {
-				if ti, ok := comp.(*discordgo.TextInput); ok && ti.CustomID == amountInputID {
-					jpyStr = ti.Value
+				if ti, ok := comp.(*discordgo.TextInput); ok {
+					switch ti.CustomID {
+					case amountInputID:
+						jpyStr = ti.Value
+					case itemNameInputID:
+						itemName = ti.Value
+					}
 				}
 			}
 		}
+	}
+
+	if itemName == "" {
+		itemName = threadTitle
 	}
 
 	jpyAmount, err := strconv.ParseFloat(jpyStr, 64)
@@ -126,7 +149,7 @@ func handleBuyModal(
 
 	ctx := context.Background()
 
-	err = uc.Execute(ctx, targetDiscordID, jpyAmount, threadTitle)
+	err = uc.Execute(ctx, targetDiscordID, jpyAmount, itemName)
 	if err != nil {
 		log.Printf("register buy record failed: %s", err)
 		respondError(s, i, "failed to register buy record")

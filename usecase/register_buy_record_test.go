@@ -30,7 +30,7 @@ func TestRegisterBuyRecord_Success(t *testing.T) {
 		DatabaseID: "abc-db",
 	}).Return(nil)
 
-	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo)
+	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo, 0.24)
 	err := uc.Execute(context.Background(), "111", 3000, "Thread Title")
 
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestRegisterBuyRecord_UserNotFound(t *testing.T) {
 	userRepo.On("GetUserByDiscordID", mock.Anything, "999").
 		Return(nil, errors.New("user not found"))
 
-	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo)
+	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo, 0.24)
 	err := uc.Execute(context.Background(), "999", 3000, "Thread Title")
 
 	require.Error(t, err)
@@ -63,7 +63,7 @@ func TestRegisterBuyRecord_CreateTransactionError(t *testing.T) {
 	txRepo.On("CreateTransaction", mock.Anything, mock.Anything).
 		Return(errors.New("notion error"))
 
-	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo)
+	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo, 0.24)
 	err := uc.Execute(context.Background(), "111", 3000, "Thread Title")
 
 	require.Error(t, err)
@@ -84,7 +84,7 @@ func TestRegisterBuyRecord_ExchangeRate(t *testing.T) {
 		return tx.JPYAmount == 10000 && tx.TWDAmount == 2400
 	})).Return(nil)
 
-	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo)
+	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo, 0.24)
 	err := uc.Execute(context.Background(), "111", 10000, "Item")
 
 	require.NoError(t, err)
