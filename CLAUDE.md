@@ -150,6 +150,7 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 | `EXCHANGE_RATE_JPY_TWD` | JPY to TWD exchange rate (e.g. `0.24`) |
 | `WORKER_CORNTAB` | Cron schedule (e.g. `*/1 * * * *`) |
 | `DEBUG` | Set to `1` to enable debug mode |
+| `TAG_ROLE_MAP` | Comma-separated tag=roleID pairs for Discord role mentions |
 
 ---
 

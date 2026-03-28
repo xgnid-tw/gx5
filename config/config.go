@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -17,6 +18,7 @@ type Config struct {
 	ExchangeRateJPYTWD  float64
 	WorkerCrontab       string
 	Debug               bool
+	TagRoleMap          map[string]string
 }
 
 func Load() (Config, error) {
@@ -31,6 +33,7 @@ func Load() (Config, error) {
 		WorkerCrontab:       os.Getenv("WORKER_CORNTAB"),
 		Debug:               os.Getenv("DEBUG") == "1",
 	}
+	cfg.TagRoleMap = parseTagRoleMap(os.Getenv("TAG_ROLE_MAP"))
 
 	rate, err := strconv.ParseFloat(os.Getenv("EXCHANGE_RATE_JPY_TWD"), 64)
 	if err != nil || rate <= 0 {
@@ -76,4 +79,22 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+const tagRoleMapParts = 2
+
+func parseTagRoleMap(raw string) map[string]string {
+	m := make(map[string]string)
+	if raw == "" {
+		return m
+	}
+
+	for pair := range strings.SplitSeq(raw, ",") {
+		parts := strings.SplitN(pair, "=", tagRoleMapParts)
+		if len(parts) == tagRoleMapParts {
+			m[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+
+	return m
 }

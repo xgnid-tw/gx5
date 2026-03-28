@@ -59,6 +59,8 @@ func RegisterNewOrderCommand(ch *Handler, uc port.OrderCreator) {
 func handleNewOrder(
 	s *discordgo.Session, i *discordgo.InteractionCreate, uc port.OrderCreator,
 ) {
+	respondDeferred(s, i)
+
 	opts := i.ApplicationCommandData().Options
 	optMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(opts))
 
@@ -87,12 +89,12 @@ func handleNewOrder(
 	err := uc.Execute(context.Background(), i.ChannelID, order)
 	if err != nil {
 		log.Printf("create order failed: %s", err)
-		respondError(s, i, "建立訂單失敗")
+		editDeferredResponse(s, i, "建立訂單失敗")
 
 		return
 	}
 
-	respondSuccess(s, i, "訂單已建立: "+order.ThreadName)
+	editDeferredResponse(s, i, "訂單已建立: "+order.ThreadName)
 }
 
 func tagChoices() []*discordgo.ApplicationCommandOptionChoice {

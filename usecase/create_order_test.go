@@ -17,7 +17,7 @@ func TestCreateOrder_MissingOrderTitle(t *testing.T) {
 	repo := mocks.NewOrderRepository(t)
 	tc := mocks.NewThreadCreator(t)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", domain.Order{})
 
@@ -32,7 +32,7 @@ func TestCreateOrder_ThreadCreationError(t *testing.T) {
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", mock.Anything).
 		Return(errors.New("discord error"))
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", domain.Order{
 		ThreadName: "test order",
@@ -51,7 +51,7 @@ func TestCreateOrder_NotionError(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, domain.Order{ThreadName: "test order"}).
 		Return(errors.New("notion error"))
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", domain.Order{
 		ThreadName: "test order",
@@ -72,14 +72,15 @@ func TestCreateOrder_Success_AllFields(t *testing.T) {
 		Tag:        domain.Tag315Pro,
 	}
 
-	expectedMessage := "https://shop.example.com\n@315pro\n截止時間: 2026-04-01"
+	tagRoleMap := map[string]string{"315pro": "123456"}
+	expectedMessage := "https://shop.example.com\n<@&123456>\n截止時間: 2026-04-01"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", expectedMessage).
 		Return(nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, tagRoleMap)
 
 	err := uc.Execute(context.Background(), "ch-1", order)
 
@@ -99,7 +100,7 @@ func TestCreateOrder_Success_OnlyTitle(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", order)
 
@@ -122,7 +123,7 @@ func TestCreateOrder_Success_PartialFields(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", order)
 
@@ -145,7 +146,7 @@ func TestCreateOrder_Success_ShopURLOnly(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, nil)
 
 	err := uc.Execute(context.Background(), "ch-1", order)
 
@@ -161,14 +162,39 @@ func TestCreateOrder_Success_TagOnly(t *testing.T) {
 		Tag:        domain.TagGakumas,
 	}
 
-	expectedMessage := "@学マス"
+	tagRoleMap := map[string]string{"学マス": "789012"}
+	expectedMessage := "<@&789012>"
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "tag order", expectedMessage).
 		Return(nil)
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc)
+	uc := usecase.NewCreateOrder(repo, tc, tagRoleMap)
+
+	err := uc.Execute(context.Background(), "ch-1", order)
+
+	require.NoError(t, err)
+}
+
+func TestCreateOrder_Success_TagWithoutRoleID(t *testing.T) {
+	repo := mocks.NewOrderRepository(t)
+	tc := mocks.NewThreadCreator(t)
+
+	order := domain.Order{
+		ThreadName: "fallback order",
+		Tag:        domain.Tag283Pro,
+	}
+
+	tagRoleMap := map[string]string{}
+	expectedMessage := "@283pro"
+
+	tc.On("CreateThread", mock.Anything, "ch-1", "fallback order", expectedMessage).
+		Return(nil)
+	repo.On("CreateOrder", mock.Anything, order).
+		Return(nil)
+
+	uc := usecase.NewCreateOrder(repo, tc, tagRoleMap)
 
 	err := uc.Execute(context.Background(), "ch-1", order)
 
