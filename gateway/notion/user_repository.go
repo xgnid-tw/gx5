@@ -21,11 +21,9 @@ type Repository struct {
 	othersDBID notionapi.DatabaseID
 }
 
-func NewRepository(token string, userDBID string, othersDBID string) *Repository {
-	c := notionapi.NewClient(notionapi.Token(token))
-
+func NewRepository(db notionapi.DatabaseService, userDBID string, othersDBID string) *Repository {
 	return &Repository{
-		db:         c.Database,
+		db:         db,
 		userDBID:   notionapi.DatabaseID(userDBID),
 		othersDBID: notionapi.DatabaseID(othersDBID),
 	}
@@ -69,6 +67,21 @@ func (r *Repository) GetUsers(ctx context.Context) ([]*domain.User, error) {
 	}
 
 	return users, nil
+}
+
+func (r *Repository) GetUserByDiscordID(ctx context.Context, discordID string) (*domain.User, error) {
+	users, err := r.GetUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, u := range users {
+		if u.DiscordID == discordID {
+			return u, nil
+		}
+	}
+
+	return nil, fmt.Errorf("user not found for discord_id: %s", discordID)
 }
 
 func (r *Repository) GetUnpaidAmount(

@@ -16,31 +16,31 @@ func NewOrderCommand() *discordgo.ApplicationCommand {
 
 	return &discordgo.ApplicationCommand{
 		Name:                     "neworder",
-		Description:              "Create a new group purchase order",
+		Description:              "建立新的團購訂單",
 		DefaultMemberPermissions: &adminPerm,
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "ordertitle",
-				Description: "Name of the order",
+				Description: "訂單名稱",
 				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "deadline",
-				Description: "Order deadline (YYYY-MM-DD)",
+				Description: "截止日期 (YYYY-MM-DD)",
 				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "shopurl",
-				Description: "Shop URL",
+				Description: "商店連結",
 				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "tags",
-				Description: "Tag",
+				Description: "標籤",
 				Required:    true,
 				Choices:     tagChoices(),
 			},
@@ -78,11 +78,11 @@ func HandleNewOrder(uc *usecase.CreateOrder) func(s *discordgo.Session, i *disco
 
 		err := uc.Execute(context.Background(), i.ChannelID, order)
 		if err != nil {
-			respondToInteraction(s, i, "Error: "+err.Error())
+			respondToInteraction(s, i, "建立訂單失敗")
 			return
 		}
 
-		respondToInteraction(s, i, "Order created: "+order.ThreadName)
+		respondToInteraction(s, i, "訂單已建立: "+order.ThreadName)
 	}
 }
 

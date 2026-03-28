@@ -52,13 +52,22 @@ func main() {
 	}
 
 	// Wire dependencies: gateway adapters -> use cases
-	repo := notiongw.NewRepository(cfg.NotionToken, cfg.NotionUserDBID, cfg.NotionOthersDBID)
+	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
 	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
 	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
 	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
+
+	txRepo := notiongw.NewTransactionRepository(notionClient.Page)
+	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo, cfg.ExchangeRateJPYTWD)
+
+	// Register Discord application commands
+	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
+
+	cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute
 	crontab := cfg.WorkerCrontab
@@ -94,21 +103,16 @@ func main() {
 		log.Fatalf("error opening connection: %s", err)
 	}
 
-	// Register slash commands before setting up defers so Fatalf does not skip cleanup
-	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
-
-	err = cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	// Sync application commands after connection is open
+	err = cmdHandler.SyncCommands()
 	if err != nil {
-		log.Fatalf("error registering newOrder command: %s", err)
+		_ = dc.Close()
+
+		log.Fatalf("error syncing commands: %s", err)
 	}
 
+	defer cmdHandler.UnregisterAll()
 	defer dc.Close()
-	defer func() {
-		unregErr := cmdHandler.UnregisterAll()
-		if unregErr != nil {
-			log.Printf("error unregistering commands: %s", unregErr)
-		}
-	}()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 

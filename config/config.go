@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -13,6 +14,7 @@ type Config struct {
 	DiscordToken        string
 	DiscordAppID        string
 	DiscordLogChannelID string
+	ExchangeRateJPYTWD  float64
 	WorkerCrontab       string
 	Debug               bool
 }
@@ -30,6 +32,13 @@ func Load() (Config, error) {
 		Debug:               os.Getenv("DEBUG") == "1",
 	}
 
+	rate, err := strconv.ParseFloat(os.Getenv("EXCHANGE_RATE_JPY_TWD"), 64)
+	if err != nil || rate <= 0 {
+		return Config{}, fmt.Errorf("EXCHANGE_RATE_JPY_TWD must be a positive number")
+	}
+
+	cfg.ExchangeRateJPYTWD = rate
+
 	if cfg.NotionToken == "" {
 		return Config{}, fmt.Errorf("NOTION_TOKEN is required")
 	}
@@ -44,6 +53,10 @@ func Load() (Config, error) {
 
 	if cfg.DiscordToken == "" {
 		return Config{}, fmt.Errorf("DISCORD_TOKEN is required")
+	}
+
+	if cfg.DiscordAppID == "" {
+		return Config{}, fmt.Errorf("DISCORD_APP_ID is required")
 	}
 
 	if cfg.DiscordLogChannelID == "" {
