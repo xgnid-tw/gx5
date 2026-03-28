@@ -17,7 +17,7 @@ const (
 	buyModalPrefix     = "buy_modal"
 	amountInputID      = "jpy_amount"
 	itemNameInputID    = "item_name"
-	modalCustomIDParts = 3
+	modalCustomIDParts = 2
 )
 
 // RegisterBuyCommand registers the /buy message command and its modal handler.
@@ -27,9 +27,7 @@ func RegisterBuyCommand(ch *Handler, uc port.BuyRecordRegisterer) {
 		Type: discordgo.MessageApplicationCommand,
 	}
 
-	ch.RegisterCommand(cmd, func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		handleBuyCommand(s, i)
-	})
+	ch.RegisterCommand(cmd, handleBuyCommand)
 
 	ch.RegisterModalHandler(buyModalPrefix, func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		handleBuyModal(s, i, uc)
@@ -39,7 +37,6 @@ func RegisterBuyCommand(ch *Handler, uc port.BuyRecordRegisterer) {
 func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	data := i.ApplicationCommandData()
 
-	// Get the target message from the resolved data
 	targetMsg, ok := data.Resolved.Messages[data.TargetID]
 	if !ok {
 		respondError(s, i, "無法取得目標訊息")
@@ -48,7 +45,6 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	targetDiscordID := targetMsg.Author.ID
 
-	// Get thread title from the channel (must be in a thread)
 	channel, err := s.Channel(i.ChannelID)
 	if err != nil {
 		respondError(s, i, "無法取得頻道資訊")
@@ -60,11 +56,8 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	threadTitle := channel.Name
-
-	// Encode targetDiscordID and threadTitle into modal CustomID
-	// Format: buy_modal:<targetDiscordID>:<threadTitle>
-	customID := fmt.Sprintf("%s:%s:%s", buyModalPrefix, targetDiscordID, threadTitle)
+	// Format: buy_modal:<targetDiscordID>
+	customID := fmt.Sprintf("%s:%s", buyModalPrefix, targetDiscordID)
 
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseModal,
@@ -89,8 +82,8 @@ func handleBuyCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 							CustomID: itemNameInputID,
 							Label:    "品項",
 							Style:    discordgo.TextInputShort,
-							Required: false,
-							Value:    threadTitle,
+							Required: true,
+							Value:    channel.Name,
 						},
 					},
 				},
@@ -107,7 +100,7 @@ func handleBuyModal(
 ) {
 	data := i.ModalSubmitData()
 
-	// Parse customID: buy_modal:<targetDiscordID>:<threadTitle>
+	// Format: buy_modal:<targetDiscordID>
 	parts := strings.SplitN(data.CustomID, ":", modalCustomIDParts)
 	if len(parts) != modalCustomIDParts {
 		respondError(s, i, "無效的表單資料")
@@ -115,9 +108,7 @@ func handleBuyModal(
 	}
 
 	targetDiscordID := parts[1]
-	threadTitle := parts[2]
 
-	// Extract JPY amount and item name from modal inputs
 	var jpyStr string
 
 	var itemName string
@@ -137,19 +128,13 @@ func handleBuyModal(
 		}
 	}
 
-	if itemName == "" {
-		itemName = threadTitle
-	}
-
 	jpyAmount, err := strconv.ParseFloat(jpyStr, 64)
 	if err != nil || jpyAmount <= 0 {
 		respondError(s, i, "無效的日幣金額")
 		return
 	}
 
-	ctx := context.Background()
-
-	err = uc.Execute(ctx, targetDiscordID, jpyAmount, itemName)
+	err = uc.Execute(context.Background(), targetDiscordID, jpyAmount, itemName)
 	if err != nil {
 		log.Printf("register buy record failed: %s", err)
 		respondError(s, i, "登記失敗")
@@ -157,26 +142,5 @@ func handleBuyModal(
 		return
 	}
 
-	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "登記完畢",
-		},
-	})
-	if err != nil {
-		log.Printf("error responding to modal: %s", err)
-	}
-}
-
-func respondError(s *discordgo.Session, i *discordgo.InteractionCreate, msg string) {
-	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: msg,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	})
-	if err != nil {
-		log.Printf("error responding with error message: %s", err)
-	}
+	respondSuccess(s, i, "登記完畢")
 }

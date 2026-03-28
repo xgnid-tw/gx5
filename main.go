@@ -66,7 +66,7 @@ func main() {
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
 	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute
