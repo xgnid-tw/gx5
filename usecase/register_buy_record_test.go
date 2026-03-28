@@ -89,3 +89,24 @@ func TestRegisterBuyRecord_ExchangeRate(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestRegisterBuyRecord_TWDRounded(t *testing.T) {
+	userRepo := mocks.NewUserRepository(t)
+	txRepo := mocks.NewTransactionRepository(t)
+
+	user := &domain.User{
+		DiscordID: "111", Name: "Alice",
+		NotionID: "abc-db", Currency: domain.CurrencyJPY,
+	}
+
+	// 3500 * 0.217 = 759.5 → rounds to 760
+	userRepo.On("GetUserByDiscordID", mock.Anything, "111").Return(user, nil)
+	txRepo.On("CreateTransaction", mock.Anything, mock.MatchedBy(func(tx domain.Transaction) bool {
+		return tx.JPYAmount == 3500 && tx.TWDAmount == 760
+	})).Return(nil)
+
+	uc := usecase.NewRegisterBuyRecord(userRepo, txRepo, 0.217)
+	err := uc.Execute(context.Background(), "111", 3500, "Item")
+
+	require.NoError(t, err)
+}
