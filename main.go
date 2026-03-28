@@ -12,9 +12,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
+	"github.com/jomei/notionapi"
 
 	"github.com/xgnid-tw/gx5/config"
 	discordgw "github.com/xgnid-tw/gx5/gateway/discord"
+	discordcmd "github.com/xgnid-tw/gx5/gateway/discord/command"
 	notiongw "github.com/xgnid-tw/gx5/gateway/notion"
 	"github.com/xgnid-tw/gx5/usecase"
 )
@@ -41,16 +43,22 @@ func main() {
 
 	dc.Identify.Intents = discordgo.IntentsAll
 
+	notionClient := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
+
 	// Load Asia/Tokyo timezone for scheduler and use case day guard
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		log.Fatalf("invalid location: %s", err)
 	}
 
-	// Wire dependencies: gateway adapters -> use case
+	// Wire dependencies: gateway adapters -> use cases
 	repo := notiongw.NewRepository(cfg.NotionToken, cfg.NotionUserDBID, cfg.NotionOthersDBID)
 	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
-	uc := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+
+	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
+	threadCreator := discordgw.NewThreadCreator(dc)
+	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
 
 	// In debug mode, fake the clock and run the job every minute
 	crontab := cfg.WorkerCrontab
@@ -58,7 +66,7 @@ func main() {
 	if cfg.Debug {
 		clk := clock.NewMock()
 		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
-		uc.Clock = clk
+		notifyUnpaidUC.Clock = clk
 		crontab = "*/1 * * * *"
 	}
 
@@ -71,7 +79,7 @@ func main() {
 	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
 		log.Print("run job")
 
-		err := uc.Execute(ctx)
+		err := notifyUnpaidUC.Execute(ctx)
 		if err != nil {
 			log.Printf("worker: %s", err)
 		}
@@ -85,7 +93,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("error opening connection: %s", err)
 	}
+
+	// Register slash commands before setting up defers so Fatalf does not skip cleanup
+	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
+
+	err = cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	if err != nil {
+		log.Fatalf("error registering newOrder command: %s", err)
+	}
+
 	defer dc.Close()
+	defer func() {
+		unregErr := cmdHandler.UnregisterAll()
+		if unregErr != nil {
+			log.Printf("error unregistering commands: %s", unregErr)
+		}
+	}()
 
 	log.Print("Bot is now running. Press CTRL-C to exit.")
 

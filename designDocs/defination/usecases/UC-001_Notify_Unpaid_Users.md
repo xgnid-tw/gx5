@@ -121,18 +121,6 @@ Refer to:
 
 ## 6. Related Use Cases
 
-### Include Relationships
-
-| Use Case | Reason |
-|---|---|
-| UC-903: Error Handling | Mandatory include — handles Notion API errors and Discord API errors |
-
-### Extend Relationships
-
-None.
-
-### Generalization Relationships
-
 None.
 
 ---
