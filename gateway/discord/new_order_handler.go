@@ -12,9 +12,12 @@ import (
 
 // NewOrderCommand returns the Discord slash command definition for /neworder.
 func NewOrderCommand() *discordgo.ApplicationCommand {
+	adminPerm := int64(discordgo.PermissionAdministrator)
+
 	return &discordgo.ApplicationCommand{
-		Name:        "neworder",
-		Description: "Create a new group purchase order",
+		Name:                     "neworder",
+		Description:              "Create a new group purchase order",
+		DefaultMemberPermissions: &adminPerm,
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
@@ -73,14 +76,7 @@ func HandleNewOrder(uc *usecase.CreateOrder) func(s *discordgo.Session, i *disco
 			order.Tag = domain.Tag(v.StringValue())
 		}
 
-		var callerID string
-		if i.Member != nil && i.Member.User != nil {
-			callerID = i.Member.User.ID
-		} else if i.User != nil {
-			callerID = i.User.ID
-		}
-
-		err := uc.Execute(context.Background(), callerID, i.ChannelID, order)
+		err := uc.Execute(context.Background(), i.ChannelID, order)
 		if err != nil {
 			respondToInteraction(s, i, "Error: "+err.Error())
 			return

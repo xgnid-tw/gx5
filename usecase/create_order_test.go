@@ -13,29 +13,13 @@ import (
 	"github.com/xgnid-tw/gx5/usecase"
 )
 
-const testOwnerID = "owner-123"
-
-func TestCreateOrder_Unauthorized(t *testing.T) {
-	repo := mocks.NewOrderRepository(t)
-	tc := mocks.NewThreadCreator(t)
-
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
-
-	err := uc.Execute(context.Background(), "other-user", "ch-1", domain.Order{
-		ThreadName: "test order",
-	})
-
-	require.Error(t, err)
-	require.ErrorContains(t, err, "unauthorized")
-}
-
 func TestCreateOrder_MissingOrderTitle(t *testing.T) {
 	repo := mocks.NewOrderRepository(t)
 	tc := mocks.NewThreadCreator(t)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", domain.Order{})
+	err := uc.Execute(context.Background(), "ch-1", domain.Order{})
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "orderTitle is required")
@@ -48,9 +32,9 @@ func TestCreateOrder_ThreadCreationError(t *testing.T) {
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", mock.Anything).
 		Return(errors.New("discord error"))
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", domain.Order{
+	err := uc.Execute(context.Background(), "ch-1", domain.Order{
 		ThreadName: "test order",
 	})
 
@@ -67,9 +51,9 @@ func TestCreateOrder_NotionError(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, domain.Order{ThreadName: "test order"}).
 		Return(errors.New("notion error"))
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", domain.Order{
+	err := uc.Execute(context.Background(), "ch-1", domain.Order{
 		ThreadName: "test order",
 	})
 
@@ -95,9 +79,9 @@ func TestCreateOrder_Success_AllFields(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", order)
+	err := uc.Execute(context.Background(), "ch-1", order)
 
 	require.NoError(t, err)
 }
@@ -115,9 +99,9 @@ func TestCreateOrder_Success_OnlyTitle(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", order)
+	err := uc.Execute(context.Background(), "ch-1", order)
 
 	require.NoError(t, err)
 }
@@ -138,9 +122,9 @@ func TestCreateOrder_Success_PartialFields(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", order)
+	err := uc.Execute(context.Background(), "ch-1", order)
 
 	require.NoError(t, err)
 }
@@ -161,9 +145,9 @@ func TestCreateOrder_Success_ShopURLOnly(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", order)
+	err := uc.Execute(context.Background(), "ch-1", order)
 
 	require.NoError(t, err)
 }
@@ -184,9 +168,9 @@ func TestCreateOrder_Success_TagOnly(t *testing.T) {
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
-	uc := usecase.NewCreateOrder(repo, tc, testOwnerID)
+	uc := usecase.NewCreateOrder(repo, tc)
 
-	err := uc.Execute(context.Background(), testOwnerID, "ch-1", order)
+	err := uc.Execute(context.Background(), "ch-1", order)
 
 	require.NoError(t, err)
 }

@@ -13,7 +13,6 @@ type Config struct {
 	DiscordToken        string
 	DiscordAppID        string
 	DiscordLogChannelID string
-	DiscordOwnerID      string
 	WorkerCrontab       string
 	Debug               bool
 }
@@ -27,7 +26,6 @@ func Load() (Config, error) {
 		DiscordToken:        os.Getenv("DISCORD_TOKEN"),
 		DiscordAppID:        os.Getenv("DISCORD_APP_ID"),
 		DiscordLogChannelID: os.Getenv("DISCORD_GUILD_LOG_CHANNEL_ID"),
-		DiscordOwnerID:      os.Getenv("DISCORD_OWNER_ID"),
 		WorkerCrontab:       os.Getenv("WORKER_CORNTAB"),
 		Debug:               os.Getenv("DEBUG") == "1",
 	}
@@ -62,10 +60,6 @@ func Load() (Config, error) {
 
 	if cfg.DiscordAppID == "" {
 		return Config{}, fmt.Errorf("DISCORD_APP_ID is required")
-	}
-
-	if cfg.DiscordOwnerID == "" {
-		return Config{}, fmt.Errorf("DISCORD_OWNER_ID is required")
 	}
 
 	return cfg, nil

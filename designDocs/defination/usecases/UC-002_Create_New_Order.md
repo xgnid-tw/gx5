@@ -67,7 +67,7 @@ None.
 - The Discord bot is authenticated and connected to the guild
 - The Notion Order List database (TBL-004, configured via `NOTION_ORDER_DB_ID` env var) is accessible
 - The `/newOrder` slash command is registered with the Discord application
-- The invoking user's Discord ID matches the authorized operator (BR-015)
+- The invoking user has Administrator permission in the Discord guild (BR-015)
 
 ### Post-conditions
 
@@ -88,8 +88,8 @@ None.
 ### Summary Flow
 
 1. User executes `/newOrder orderTitle deadline shopURL tags` in a Discord channel (all parameters required)
-2. System verifies the invoking user is the authorized operator (BR-015); if not, reject with an error
-3. System validates required parameter `orderTitle` is present (BR-007)
+2. Discord enforces command visibility to administrators only (BR-015)
+3. Discord enforces all required parameters are present (BR-007)
 4. System creates a new Discord thread in the current channel with title `orderTitle`
 5. System sends the first message in the thread with the format defined in BR-008
 6. System inserts a new record into the Notion Order List database (TBL-004) with `threadName` = `orderTitle`, `deadline` = `deadline`, `tags` = `tags` (BR-009)
@@ -109,7 +109,7 @@ At this time, no specific business usage calling this function has been identifi
 | BR-008 | Thread First Message Format | The first message in the created thread follows the format: line 1 = `shopURL`, line 2 = tag mentions (each prefixed with `@`), line 3 = deadline display (`截止時間: {deadline}`) | None (all fields are always present) |
 | BR-009 | Notion Record Mapping | The Notion record maps as follows: `threadName` ← `orderTitle` (Title), `deadline` ← `deadline` (Date, ISO-8601), `tags` ← `tags` (Select, single value) | `shopURL` is not stored in Notion (TBL-004 has no such column) |
 | BR-010 | Tag Values | Tag must correspond to a valid select option defined in TBL-004: `315pro`, `学マス`, `283pro`, `346pro`, `765pro` (single value only) | Unknown tag is passed as-is; Notion API will reject invalid values |
-| BR-015 | Operator Authorization | Only the authorized operator (configured via `DISCORD_OWNER_ID` env var) may execute this command; all other users are rejected | None |
+| BR-015 | Operator Authorization | Command visibility is restricted via Discord's `DefaultMemberPermissions` (Administrator). Only server administrators can see and execute this command. | Fine-tune per-user/per-role in Discord Server Settings → Integrations → Bot → Command Permissions |
 
 ---
 
@@ -148,4 +148,4 @@ None.
 |---|---|---|---|
 | 1.0 | 2026/03/18 | — | Initial draft |
 | 1.1 | 2026/03/18 | — | Restrict command to authorized operator only (BR-015, configured via `DISCORD_OWNER_ID` env var); update actor, pre-conditions, and flow |
-| 1.2 | 2026/03/28 | — | All parameters (`orderTitle`, `deadline`, `shopURL`, `tags`) are now required; `tags` uses Discord Choices dropdown (BR-010) |
+| 1.2 | 2026/03/28 | — | All parameters now required; `tags` uses Discord Choices dropdown (BR-010); authorization moved to Discord `DefaultMemberPermissions` (Administrator), removing `DISCORD_OWNER_ID` env var |

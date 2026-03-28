@@ -12,26 +12,20 @@ import (
 type CreateOrder struct {
 	repo          port.OrderRepository
 	threadCreator port.ThreadCreator
-	ownerID       string
 }
 
 func NewCreateOrder(
-	repo port.OrderRepository, threadCreator port.ThreadCreator, ownerID string,
+	repo port.OrderRepository, threadCreator port.ThreadCreator,
 ) *CreateOrder {
 	return &CreateOrder{
 		repo:          repo,
 		threadCreator: threadCreator,
-		ownerID:       ownerID,
 	}
 }
 
 func (uc *CreateOrder) Execute(
-	ctx context.Context, callerID string, channelID string, order domain.Order,
+	ctx context.Context, channelID string, order domain.Order,
 ) error {
-	if callerID != uc.ownerID {
-		return fmt.Errorf("unauthorized: only the bot owner can create orders")
-	}
-
 	if order.ThreadName == "" {
 		return fmt.Errorf("orderTitle is required")
 	}

@@ -57,7 +57,7 @@ func main() {
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
-	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator, cfg.DiscordOwnerID)
+	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
 
 	// In debug mode, fake the clock and run the job every minute
 	crontab := cfg.WorkerCrontab
