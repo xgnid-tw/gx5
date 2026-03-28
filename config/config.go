@@ -81,15 +81,17 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+const tagRoleMapParts = 2
+
 func parseTagRoleMap(raw string) map[string]string {
 	m := make(map[string]string)
 	if raw == "" {
 		return m
 	}
 
-	for _, pair := range strings.Split(raw, ",") {
-		parts := strings.SplitN(pair, "=", 2)
-		if len(parts) == 2 {
+	for pair := range strings.SplitSeq(raw, ",") {
+		parts := strings.SplitN(pair, "=", tagRoleMapParts)
+		if len(parts) == tagRoleMapParts {
 			m[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
 		}
 	}
