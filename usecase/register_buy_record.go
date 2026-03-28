@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/xgnid-tw/gx5/domain"
 	"github.com/xgnid-tw/gx5/port"
@@ -28,7 +29,7 @@ func (uc *RegisterBuyRecord) Execute(
 		return fmt.Errorf("get user by discord id: %w", err)
 	}
 
-	twdAmount := jpyAmount * uc.jpyToTWDRate
+	twdAmount := math.Round(jpyAmount * uc.jpyToTWDRate)
 
 	tx := domain.Transaction{
 		ItemName:   itemName,

@@ -58,7 +58,7 @@ func main() {
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
-	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator)
+	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator, cfg.TagRoleMap)
 
 	txRepo := notiongw.NewTransactionRepository(notionClient.Page)
 	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo, cfg.ExchangeRateJPYTWD)
@@ -66,7 +66,7 @@ func main() {
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
 	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute

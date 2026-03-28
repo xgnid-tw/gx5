@@ -4,3 +4,4 @@
 # binary
 bin/*
 
+.claude/

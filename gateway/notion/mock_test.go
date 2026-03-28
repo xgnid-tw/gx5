@@ -69,6 +69,26 @@ func makeUserPage(discordID, name, notionID, currency string) notionapi.Page {
 	}
 }
 
+type mockPageService struct {
+	createFn func(ctx context.Context, req *notionapi.PageCreateRequest) (*notionapi.Page, error)
+}
+
+func (m *mockPageService) Create(
+	ctx context.Context, req *notionapi.PageCreateRequest,
+) (*notionapi.Page, error) {
+	return m.createFn(ctx, req)
+}
+
+func (m *mockPageService) Get(context.Context, notionapi.PageID) (*notionapi.Page, error) {
+	panic("not implemented")
+}
+
+func (m *mockPageService) Update(
+	context.Context, notionapi.PageID, *notionapi.PageUpdateRequest,
+) (*notionapi.Page, error) {
+	panic("not implemented")
+}
+
 func makeAmountPage(column string, amount float64) notionapi.Page {
 	return notionapi.Page{
 		Properties: notionapi.Properties{
