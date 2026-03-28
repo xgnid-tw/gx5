@@ -1,4 +1,4 @@
-package discord
+package command
 
 import (
 	"context"
@@ -20,7 +20,7 @@ const (
 )
 
 // RegisterBuyCommand registers the /buy message command and its modal handler.
-func RegisterBuyCommand(ch *CommandHandler, uc port.BuyRecordRegisterer) {
+func RegisterBuyCommand(ch *Handler, uc port.BuyRecordRegisterer) {
 	cmd := &discordgo.ApplicationCommand{
 		Name: buyCommandName,
 		Type: discordgo.MessageApplicationCommand,

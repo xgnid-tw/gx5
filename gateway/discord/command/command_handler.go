@@ -1,4 +1,4 @@
-package discord
+package command
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// CommandHandler manages Discord application command registration and dispatch.
-type CommandHandler struct {
+// Handler manages Discord application command registration and dispatch.
+type Handler struct {
 	session    *discordgo.Session
 	appID      string
 	commands   []*discordgo.ApplicationCommand
@@ -16,8 +16,8 @@ type CommandHandler struct {
 	registered []*discordgo.ApplicationCommand
 }
 
-func NewCommandHandler(session *discordgo.Session, appID string) *CommandHandler {
-	h := &CommandHandler{
+func NewHandler(session *discordgo.Session, appID string) *Handler {
+	h := &Handler{
 		session:  session,
 		appID:    appID,
 		handlers: make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)),
@@ -47,7 +47,7 @@ func NewCommandHandler(session *discordgo.Session, appID string) *CommandHandler
 }
 
 // RegisterCommand registers an application command with its handler.
-func (h *CommandHandler) RegisterCommand(
+func (h *Handler) RegisterCommand(
 	cmd *discordgo.ApplicationCommand,
 	handler func(s *discordgo.Session, i *discordgo.InteractionCreate),
 ) {
@@ -56,7 +56,7 @@ func (h *CommandHandler) RegisterCommand(
 }
 
 // RegisterModalHandler registers a handler for modal submissions with a given prefix.
-func (h *CommandHandler) RegisterModalHandler(
+func (h *Handler) RegisterModalHandler(
 	prefix string,
 	handler func(s *discordgo.Session, i *discordgo.InteractionCreate),
 ) {
@@ -64,7 +64,7 @@ func (h *CommandHandler) RegisterModalHandler(
 }
 
 // SyncCommands creates all registered commands with the Discord API.
-func (h *CommandHandler) SyncCommands() error {
+func (h *Handler) SyncCommands() error {
 	for _, cmd := range h.commands {
 		registered, err := h.session.ApplicationCommandCreate(h.appID, "", cmd)
 		if err != nil {
@@ -78,7 +78,7 @@ func (h *CommandHandler) SyncCommands() error {
 }
 
 // UnregisterAll removes all registered commands from the Discord API.
-func (h *CommandHandler) UnregisterAll() {
+func (h *Handler) UnregisterAll() {
 	for _, cmd := range h.registered {
 		err := h.session.ApplicationCommandDelete(h.appID, "", cmd.ID)
 		if err != nil {

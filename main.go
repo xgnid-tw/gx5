@@ -16,6 +16,7 @@ import (
 
 	"github.com/xgnid-tw/gx5/config"
 	discordgw "github.com/xgnid-tw/gx5/gateway/discord"
+	discordcmd "github.com/xgnid-tw/gx5/gateway/discord/command"
 	notiongw "github.com/xgnid-tw/gx5/gateway/notion"
 	"github.com/xgnid-tw/gx5/usecase"
 )
@@ -58,8 +59,8 @@ func main() {
 	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo)
 
 	// Register Discord application commands
-	cmdHandler := discordgw.NewCommandHandler(dc, cfg.DiscordAppID)
-	discordgw.RegisterBuyCommand(cmdHandler, buyUC)
+	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
+	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
 	// In debug mode, fake the clock and run the job every minute
 	crontab := cfg.WorkerCrontab
