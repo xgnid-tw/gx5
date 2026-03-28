@@ -111,6 +111,7 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 | `NOTION_OTHERS_DB_ID` | Notion shared "其他" database ID |
 | `WORKER_CORNTAB` | Cron schedule (e.g. `*/1 * * * *`) |
 | `DEBUG` | Set to `1` to enable debug mode |
+| `TAG_ROLE_MAP` | Comma-separated tag=roleID pairs for Discord role mentions |
 
 ---
 
