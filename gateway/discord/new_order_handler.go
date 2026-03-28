@@ -37,8 +37,15 @@ func NewOrderCommand() *discordgo.ApplicationCommand {
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "tags",
-				Description: "Tag (315pro, 学マス, 283pro, 346pro, 765pro)",
+				Description: "Tag",
 				Required:    false,
+				Choices: []*discordgo.ApplicationCommandOptionChoice{
+					{Name: "315pro", Value: "315pro"},
+					{Name: "学マス", Value: "学マス"},
+					{Name: "283pro", Value: "283pro"},
+					{Name: "346pro", Value: "346pro"},
+					{Name: "765pro", Value: "765pro"},
+				},
 			},
 		},
 	}
