@@ -97,7 +97,7 @@ func main() {
 	// Register slash commands before setting up defers so Fatalf does not skip cleanup
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	err = cmdHandler.RegisterCommand(discordcmd.NewOrderCommand(), discordcmd.HandleNewOrder(createOrderUC))
+	err = discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
 	if err != nil {
 		log.Fatalf("error registering newOrder command: %s", err)
 	}
