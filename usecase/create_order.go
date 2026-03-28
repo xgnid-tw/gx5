@@ -12,14 +12,16 @@ import (
 type CreateOrder struct {
 	repo          port.OrderRepository
 	threadCreator port.ThreadCreator
+	tagRoleMap    map[string]string
 }
 
 func NewCreateOrder(
-	repo port.OrderRepository, threadCreator port.ThreadCreator,
+	repo port.OrderRepository, threadCreator port.ThreadCreator, tagRoleMap map[string]string,
 ) *CreateOrder {
 	return &CreateOrder{
 		repo:          repo,
 		threadCreator: threadCreator,
+		tagRoleMap:    tagRoleMap,
 	}
 }
 
@@ -30,7 +32,7 @@ func (uc *CreateOrder) Execute(
 		return fmt.Errorf("orderTitle is required")
 	}
 
-	message := buildThreadMessage(order)
+	message := buildThreadMessage(order, uc.tagRoleMap)
 
 	err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
 	if err != nil {
@@ -45,7 +47,7 @@ func (uc *CreateOrder) Execute(
 	return nil
 }
 
-func buildThreadMessage(order domain.Order) string {
+func buildThreadMessage(order domain.Order, tagRoleMap map[string]string) string {
 	var lines []string
 
 	if order.ShopURL != "" {
@@ -53,7 +55,11 @@ func buildThreadMessage(order domain.Order) string {
 	}
 
 	if order.Tag != "" {
-		lines = append(lines, fmt.Sprintf("@%s", order.Tag))
+		if roleID, ok := tagRoleMap[string(order.Tag)]; ok {
+			lines = append(lines, fmt.Sprintf("<@&%s>", roleID))
+		} else {
+			lines = append(lines, fmt.Sprintf("@%s", order.Tag))
+		}
 	}
 
 	if order.Deadline != "" {
