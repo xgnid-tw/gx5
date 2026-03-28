@@ -24,11 +24,16 @@ jobs:
           name: Create env
           command: |
             echo "DISCORD_TOKEN=${DISCORD_TOKEN}" >> .env
+            echo "DISCORD_APP_ID=${DISCORD_APP_ID}" >> .env
+            echo "DISCORD_GUILD_LOG_CHANNEL_ID=${DISCORD_GUILD_LOG_CHANNEL_ID}" >> .env
             echo "NOTION_TOKEN=${NOTION_TOKEN}" >> .env
             echo "NOTION_USER_DB_ID=${NOTION_USER_DB_ID}" >> .env
             echo "NOTION_OTHERS_DB_ID=${NOTION_OTHERS_DB_ID}" >> .env
-            echo "DISCORD_GUILD_LOG_CHANNEL_ID=${DISCORD_GUILD_LOG_CHANNEL_ID}" >> .env
+            echo "NOTION_ORDER_DB_ID=${NOTION_ORDER_DB_ID}" >> .env
+            echo "EXCHANGE_RATE_JPY_TWD=${EXCHANGE_RATE_JPY_TWD}" >> .env
+            echo "TAG_ROLE_MAP=${TAG_ROLE_MAP}" >> .env
             echo "WORKER_CORNTAB=${WORKER_CORNTAB}" >> .env
+            echo "DEBUG=${DEBUG}" >> .env
       - persist_to_workspace:
           root: ./
           paths:
