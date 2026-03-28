@@ -39,13 +39,7 @@ func NewOrderCommand() *discordgo.ApplicationCommand {
 				Name:        "tags",
 				Description: "Tag",
 				Required:    true,
-				Choices: []*discordgo.ApplicationCommandOptionChoice{
-					{Name: "315pro", Value: "315pro"},
-					{Name: "学マス", Value: "学マス"},
-					{Name: "283pro", Value: "283pro"},
-					{Name: "346pro", Value: "346pro"},
-					{Name: "765pro", Value: "765pro"},
-				},
+				Choices:     tagChoices(),
 			},
 		},
 	}
@@ -94,6 +88,18 @@ func HandleNewOrder(uc *usecase.CreateOrder) func(s *discordgo.Session, i *disco
 
 		respondToInteraction(s, i, "Order created: "+order.ThreadName)
 	}
+}
+
+func tagChoices() []*discordgo.ApplicationCommandOptionChoice {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(domain.ValidTags))
+	for i, tag := range domain.ValidTags {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:  string(tag),
+			Value: string(tag),
+		}
+	}
+
+	return choices
 }
 
 func respondToInteraction(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {

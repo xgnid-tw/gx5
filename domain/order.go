@@ -10,6 +10,9 @@ const (
 	Tag765Pro  Tag = "765pro"
 )
 
+// ValidTags is the authoritative list of allowed tag values.
+var ValidTags = []Tag{Tag315Pro, TagGakumas, Tag283Pro, Tag346Pro, Tag765Pro}
+
 type Order struct {
 	ThreadName string
 	Deadline   string // ISO-8601 date, may be empty
