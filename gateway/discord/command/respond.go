@@ -30,3 +30,21 @@ func respondSuccess(s *discordgo.Session, i *discordgo.InteractionCreate, msg st
 		log.Printf("error responding to interaction: %s", err)
 	}
 }
+
+func respondDeferred(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+	if err != nil {
+		log.Printf("error deferring interaction response: %s", err)
+	}
+}
+
+func editDeferredResponse(s *discordgo.Session, i *discordgo.InteractionCreate, msg string) {
+	_, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Content: &msg,
+	})
+	if err != nil {
+		log.Printf("error editing deferred response: %s", err)
+	}
+}
