@@ -45,7 +45,7 @@ func RegisterNewOrderCommand(ch *Handler, uc port.OrderCreator) {
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "tags",
 				Description: "標籤",
-				Required:    true,
+				Required:    false,
 				Choices:     tagChoices(),
 			},
 		},
