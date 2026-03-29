@@ -45,7 +45,8 @@ func (uc *CreateOrder) Execute(
 
 	if order.Tag != "" {
 		if roleID, ok := uc.tagRoleMap[string(order.Tag)]; ok && uc.memberAdder != nil {
-			go func() { //nolint:contextcheck // intentionally detached from caller context
+			//nolint:contextcheck,gosec,nolintlint // intentionally detached from caller context
+			go func() {
 				addErr := uc.memberAdder.AddRoleMembersToThread(context.Background(), threadID, roleID)
 				if addErr != nil {
 					log.Printf("add role members to thread: %s", addErr)
