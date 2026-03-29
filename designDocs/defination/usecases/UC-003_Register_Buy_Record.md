@@ -76,9 +76,9 @@ None.
 
 **On success:**
 - A new record exists in the target member's TBL-002 with:
-  - `品項` = thread title
+  - `品項` = user-provided item name (defaults to thread title)
   - `日幣` = user-input JPY amount
-  - `台幣` = JPY amount × 0.24
+  - `台幣` = round(JPY amount × `EXCHANGE_RATE_JPY_TWD`) — rounded to nearest whole number (BR-011)
   - `付款狀況` = `尚未付款`
 - The bot has replied "登記完畢" in the thread
 
@@ -100,7 +100,7 @@ None.
 5. System looks up the target member in TBL-001 by matching `discord_id`
 6. System retrieves the target member's `notion_id` (TBL-002 database ID)
 7. System retrieves the current thread title from Discord
-8. System calculates TWD amount = JPY amount × 0.24 (BR-011)
+8. System calculates TWD amount = round(JPY amount × `EXCHANGE_RATE_JPY_TWD`) (BR-011)
 9. System inserts a new record into the target member's TBL-002 (BR-012, BR-013)
 10. System replies "登記完畢" in the thread
 
@@ -114,7 +114,7 @@ At this time, no specific business usage calling this function has been identifi
 
 | ID | Rule Name | Description | Exception |
 |---|---|---|---|
-| BR-011 | Fixed Exchange Rate | TWD amount is calculated as `JPY amount × EXCHANGE_RATE_JPY_TWD`; the exchange rate is loaded from the `EXCHANGE_RATE_JPY_TWD` environment variable | None |
+| BR-011 | Fixed Exchange Rate | TWD amount is calculated as `round(JPY amount × EXCHANGE_RATE_JPY_TWD)`; the exchange rate is loaded from the `EXCHANGE_RATE_JPY_TWD` environment variable; result is rounded to the nearest whole number | None |
 | BR-012 | Item Name from Thread Title | The `品項` column is populated with a user-provided item name from the modal. If empty, defaults to the Discord thread title | None |
 | BR-013 | Default Payment Status | New records are always created with `付款狀況` = `尚未付款` (unpaid) | None |
 | BR-014 | Target Member Lookup | The target member is identified by the Discord ID of the replied-to message author; this ID is matched against `discord_id` in TBL-001 to resolve the member's `notion_id` (TBL-002 database ID) | If the replied-to user is not found in TBL-001, the operation fails with an error |

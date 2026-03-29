@@ -5,7 +5,7 @@
 | Actor | Type | Description |
 |---|---|---|
 | Scheduler | System | Cron-based trigger that initiates periodic jobs |
-| Bot Operator | Human | The authorized Discord user (configured via `DISCORD_OWNER_ID` env var) who manages group purchases |
+| Bot Operator | Human | Discord user with Administrator permission who manages group purchases (enforced via `DefaultMemberPermissions`) |
 | Guild Member | Human | Discord user who interacts with the bot via slash commands |
 | Notion API | External System | Data source for user records and transaction data |
 | Discord API | External System | Delivery channel for user notifications, logging, and thread management |
