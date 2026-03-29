@@ -71,8 +71,8 @@ Tracks group purchase order threads. Each row represents an order with its deadl
 
 ## 5. Usage
 
-- Not currently referenced in application code
-- Serves as a standalone order tracking database in Notion
+- Written by `gateway/notion/order_repository.go` → `CreateOrder()` (UC-002)
+- Records are created when the bot operator executes the `/newOrder` slash command
 
 ---
 
