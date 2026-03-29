@@ -92,11 +92,10 @@ None.
 2. Discord enforces command visibility to administrators only (BR-015)
 3. Discord enforces all required parameters are present (BR-007)
 4. System sends a deferred interaction response (Discord shows "thinking..." indicator)
-5. System creates a new Discord thread in the current channel with title `orderTitle`
-6. System sends the first message in the thread with the format defined in BR-008
-7. System inserts a new record into the Notion Order List database (TBL-004) with `threadName` = `orderTitle`, `deadline` = `deadline`, `tags` = `tags` (BR-009)
-8. System edits the deferred response confirming success
-9. In the background: system adds guild members with the tag's Discord role to the thread, then deletes the "added to thread" system messages (BR-016)
+5. System creates an empty Discord thread in the current channel with title `orderTitle` (no message yet)
+6. System inserts a new record into the Notion Order List database (TBL-004) with `threadName` = `orderTitle`, `deadline` = `deadline`, `tags` = `tags` (BR-009)
+7. System edits the deferred response confirming success
+8. In the background: system adds guild members with the tag's Discord role to the thread (BR-016), then sends the formatted first message (BR-008) so it appears below the system "added to thread" messages
 
 ### Detailed Business Flows
 
@@ -109,11 +108,11 @@ At this time, no specific business usage calling this function has been identifi
 | ID | Rule Name | Description | Exception |
 |---|---|---|---|
 | BR-007 | Required Parameters | All parameters (`orderTitle`, `deadline`, `shopURL`, `tags`) are required; Discord enforces this at the command level | None |
-| BR-008 | Thread First Message Format | The first message in the created thread follows the format: line 1 = `shopURL`, line 2 = tag mentions (each prefixed with `@`), line 3 = deadline display (`截止時間: {deadline}`) | None (all fields are always present) |
+| BR-008 | Thread First Message Format | The formatted message follows the format: line 1 = `shopURL`, line 2 = tag role mention (`<@&ROLE_ID>`), line 3 = deadline display (`截止時間: {deadline}`). This message is sent **after** all members are added to the thread so it appears below the system "added to thread" messages. | If no tag role mapping exists, tag is displayed as plain `@tagname` |
 | BR-009 | Notion Record Mapping | The Notion record maps as follows: `threadName` ← `orderTitle` (Title), `deadline` ← `deadline` (Date, ISO-8601), `tags` ← `tags` (Select, single value) | `shopURL` is not stored in Notion (TBL-004 has no such column) |
 | BR-010 | Tag Values | Tag must correspond to a valid select option defined in TBL-004: `315pro`, `学マス`, `283pro`, `346pro`, `765pro` (single value only) | Unknown tag is passed as-is; Notion API will reject invalid values |
 | BR-015 | Operator Authorization | Command visibility is restricted via Discord's `DefaultMemberPermissions` (Administrator). Only server administrators can see and execute this command. | Fine-tune per-user/per-role in Discord Server Settings → Integrations → Bot → Command Permissions |
-| BR-016 | Auto-add Tag Members | After thread creation, guild members who have the tag's Discord role (mapped via `TAG_ROLE_MAP` env var) are automatically added to the thread in a background goroutine. System messages ("X added Y to thread") are deleted after all members are added (requires Manage Messages permission). Failure to add individual members is logged but does not block order creation. | Requires Server Members Intent, `DISCORD_GUILD_ID` env var, and Manage Messages bot permission |
+| BR-016 | Auto-add Tag Members | After thread creation, guild members who have the tag's Discord role (mapped via `TAG_ROLE_MAP` env var) are automatically added to the thread in a background goroutine. After all members are added, the formatted message (BR-008) is sent. Failure to add individual members is logged but does not block order creation. | Requires Server Members Intent and `DISCORD_GUILD_ID` env var |
 
 ---
 

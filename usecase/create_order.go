@@ -38,20 +38,26 @@ func (uc *CreateOrder) Execute(
 
 	message := buildThreadMessage(order, uc.tagRoleMap)
 
-	threadID, err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
+	threadID, err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName)
 	if err != nil {
 		return fmt.Errorf("create thread: %w", err)
 	}
 
-	if order.Tag != "" {
-		if roleID, ok := uc.tagRoleMap[string(order.Tag)]; ok && uc.memberAdder != nil {
-			//nolint:contextcheck,gosec,nolintlint // intentionally detached from caller context
-			go func() {
-				addErr := uc.memberAdder.AddRoleMembersToThread(context.Background(), threadID, roleID)
-				if addErr != nil {
-					log.Printf("add role members to thread: %s", addErr)
-				}
-			}()
+	roleID, hasRole := uc.tagRoleMap[string(order.Tag)]
+	if order.Tag != "" && hasRole && uc.memberAdder != nil {
+		//nolint:contextcheck,gosec,nolintlint // intentionally detached from caller context
+		go func() {
+			addErr := uc.memberAdder.AddRoleMembersToThread(
+				context.Background(), threadID, roleID, message,
+			)
+			if addErr != nil {
+				log.Printf("add role members to thread: %s", addErr)
+			}
+		}()
+	} else if message != "" {
+		sendErr := uc.threadCreator.SendThreadMessage(ctx, threadID, message)
+		if sendErr != nil {
+			log.Printf("send thread message: %s", sendErr)
 		}
 	}
 
