@@ -7,3 +7,10 @@ type Transaction struct {
 	TWDAmount  float64 // 台幣: JPY × exchange rate
 	DatabaseID string  // target member's TBL-002 database ID (from TBL-001 notion_id)
 }
+
+// BuyResult contains the result of a successful buy record registration.
+type BuyResult struct {
+	DisplayAmount float64
+	Currency      Currency
+	ItemName      string
+}
