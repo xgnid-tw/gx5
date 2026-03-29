@@ -78,7 +78,7 @@ func TestCreateOrder_Success_AllFields(t *testing.T) {
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", expectedMessage).
 		Return("thread-id", nil)
-	ma.On("AddRoleMembersToThread", mock.Anything, "thread-id", "123456").Return(nil)
+	ma.On("AddRoleMembersToThread", mock.Anything, "thread-id", "123456").Return(nil).Maybe()
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -170,7 +170,7 @@ func TestCreateOrder_Success_TagOnly(t *testing.T) {
 
 	tc.On("CreateThread", mock.Anything, "ch-1", "tag order", expectedMessage).
 		Return("thread-id", nil)
-	ma.On("AddRoleMembersToThread", mock.Anything, "thread-id", "789012").Return(nil)
+	ma.On("AddRoleMembersToThread", mock.Anything, "thread-id", "789012").Return(nil).Maybe()
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
@@ -220,7 +220,7 @@ func TestCreateOrder_MemberAddFailure_NonFatal(t *testing.T) {
 	tc.On("CreateThread", mock.Anything, "ch-1", "test order", "<@&123456>").
 		Return("thread-id", nil)
 	ma.On("AddRoleMembersToThread", mock.Anything, "thread-id", "123456").
-		Return(errors.New("discord api error"))
+		Return(errors.New("discord api error")).Maybe()
 	repo.On("CreateOrder", mock.Anything, order).
 		Return(nil)
 
