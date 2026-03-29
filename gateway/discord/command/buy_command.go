@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
+	"github.com/xgnid-tw/gx5/domain"
 	"github.com/xgnid-tw/gx5/port"
 )
 
@@ -134,7 +135,7 @@ func handleBuyModal(
 		return
 	}
 
-	err = uc.Execute(context.Background(), targetDiscordID, jpyAmount, itemName)
+	result, err := uc.Execute(context.Background(), targetDiscordID, jpyAmount, itemName)
 	if err != nil {
 		log.Printf("register buy record failed: %s", err)
 		respondError(s, i, "登記失敗")
@@ -142,5 +143,14 @@ func handleBuyModal(
 		return
 	}
 
-	respondSuccess(s, i, "登記完畢")
+	respondSuccess(s, i, formatBuyResult(targetDiscordID, result))
+}
+
+func formatBuyResult(discordID string, r *domain.BuyResult) string {
+	symbol := "NT$"
+	if r.Currency == domain.CurrencyJPY {
+		symbol = "¥"
+	}
+
+	return fmt.Sprintf("登記完畢 <@%s> %s%.0f (%s)", discordID, symbol, r.DisplayAmount, r.ItemName)
 }

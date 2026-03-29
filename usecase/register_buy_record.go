@@ -23,10 +23,10 @@ func NewRegisterBuyRecord(
 
 func (uc *RegisterBuyRecord) Execute(
 	ctx context.Context, targetDiscordID string, jpyAmount float64, itemName string,
-) error {
+) (*domain.BuyResult, error) {
 	user, err := uc.userRepo.GetUserByDiscordID(ctx, targetDiscordID)
 	if err != nil {
-		return fmt.Errorf("get user by discord id: %w", err)
+		return nil, fmt.Errorf("get user by discord id: %w", err)
 	}
 
 	twdAmount := math.Round(jpyAmount * uc.jpyToTWDRate)
@@ -40,8 +40,17 @@ func (uc *RegisterBuyRecord) Execute(
 
 	err = uc.txRepo.CreateTransaction(ctx, tx)
 	if err != nil {
-		return fmt.Errorf("create transaction: %w", err)
+		return nil, fmt.Errorf("create transaction: %w", err)
 	}
 
-	return nil
+	displayAmount := twdAmount
+	if user.Currency == domain.CurrencyJPY {
+		displayAmount = jpyAmount
+	}
+
+	return &domain.BuyResult{
+		DisplayAmount: displayAmount,
+		Currency:      user.Currency,
+		ItemName:      itemName,
+	}, nil
 }
