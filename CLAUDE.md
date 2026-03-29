@@ -141,6 +141,7 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 |---|---|
 | `DISCORD_TOKEN` | Discord bot token |
 | `DISCORD_APP_ID` | Discord application ID (for slash command registration) |
+| `DISCORD_GUILD_ID` | Discord guild (server) ID |
 | `DISCORD_GUILD` | Guild name (informational) |
 | `DISCORD_GUILD_LOG_CHANNEL_ID` | Channel ID for logging |
 | `NOTION_TOKEN` | Notion API token |

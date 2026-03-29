@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/xgnid-tw/gx5/domain"
@@ -12,15 +13,18 @@ import (
 type CreateOrder struct {
 	repo          port.OrderRepository
 	threadCreator port.ThreadCreator
+	memberAdder   port.MemberAdder
 	tagRoleMap    map[string]string
 }
 
 func NewCreateOrder(
-	repo port.OrderRepository, threadCreator port.ThreadCreator, tagRoleMap map[string]string,
+	repo port.OrderRepository, threadCreator port.ThreadCreator,
+	memberAdder port.MemberAdder, tagRoleMap map[string]string,
 ) *CreateOrder {
 	return &CreateOrder{
 		repo:          repo,
 		threadCreator: threadCreator,
+		memberAdder:   memberAdder,
 		tagRoleMap:    tagRoleMap,
 	}
 }
@@ -34,9 +38,21 @@ func (uc *CreateOrder) Execute(
 
 	message := buildThreadMessage(order, uc.tagRoleMap)
 
-	_, err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
+	threadID, err := uc.threadCreator.CreateThread(ctx, channelID, order.ThreadName, message)
 	if err != nil {
 		return fmt.Errorf("create thread: %w", err)
+	}
+
+	if order.Tag != "" {
+		if roleID, ok := uc.tagRoleMap[string(order.Tag)]; ok && uc.memberAdder != nil {
+			//nolint:contextcheck,gosec,nolintlint // intentionally detached from caller context
+			go func() {
+				addErr := uc.memberAdder.AddRoleMembersToThread(context.Background(), threadID, roleID)
+				if addErr != nil {
+					log.Printf("add role members to thread: %s", addErr)
+				}
+			}()
+		}
 	}
 
 	err = uc.repo.CreateOrder(ctx, order)
