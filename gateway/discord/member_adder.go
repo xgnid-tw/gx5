@@ -53,11 +53,7 @@ func (ma *MemberAdder) AddRoleMembersToThread(
 	return nil
 }
 
-const (
-	recentMessageLimit         = 50
-	messageTypeRecipientAdd    = 1
-	messageTypeGuildMemberJoin = 7
-)
+const recentMessageLimit = 50
 
 func (ma *MemberAdder) deleteSystemMessages(threadID string) {
 	messages, err := ma.s.ChannelMessages(threadID, recentMessageLimit, "", "", "")
@@ -67,11 +63,10 @@ func (ma *MemberAdder) deleteSystemMessages(threadID string) {
 	}
 
 	for _, msg := range messages {
-		if msg.Type == discordgo.MessageType(messageTypeRecipientAdd) ||
-			msg.Type == discordgo.MessageType(messageTypeGuildMemberJoin) {
+		if msg.Type != discordgo.MessageTypeDefault {
 			delErr := ma.s.ChannelMessageDelete(threadID, msg.ID)
 			if delErr != nil {
-				log.Printf("failed to delete system message %s: %s", msg.ID, delErr)
+				log.Printf("failed to delete system message %s (type %d): %s", msg.ID, msg.Type, delErr)
 			}
 		}
 	}
