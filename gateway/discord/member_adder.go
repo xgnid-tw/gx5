@@ -14,13 +14,9 @@ type memberAdderSession interface {
 		guildID string, after string, limit int, options ...discordgo.RequestOption,
 	) ([]*discordgo.Member, error)
 	ThreadMemberAdd(threadID, memberID string, options ...discordgo.RequestOption) error
-	ChannelMessages(
-		channelID string, limit int, beforeID, afterID, aroundID string,
-		options ...discordgo.RequestOption,
-	) ([]*discordgo.Message, error)
-	ChannelMessageDelete(
-		channelID, messageID string, options ...discordgo.RequestOption,
-	) error
+	ChannelMessageSendComplex(
+		channelID string, data *discordgo.MessageSend, options ...discordgo.RequestOption,
+	) (*discordgo.Message, error)
 }
 
 // MemberAdder implements port.MemberAdder using the Discord API.
@@ -34,7 +30,7 @@ func NewMemberAdder(s *discordgo.Session, guildID string) *MemberAdder {
 }
 
 func (ma *MemberAdder) AddRoleMembersToThread(
-	_ context.Context, threadID string, roleID string,
+	_ context.Context, threadID string, roleID string, message string,
 ) error {
 	members, err := ma.fetchMembersWithRole(roleID)
 	if err != nil {
@@ -48,28 +44,19 @@ func (ma *MemberAdder) AddRoleMembersToThread(
 		}
 	}
 
-	ma.deleteSystemMessages(threadID)
-
-	return nil
-}
-
-const recentMessageLimit = 50
-
-func (ma *MemberAdder) deleteSystemMessages(threadID string) {
-	messages, err := ma.s.ChannelMessages(threadID, recentMessageLimit, "", "", "")
-	if err != nil {
-		log.Printf("failed to fetch messages for cleanup in thread %s: %s", threadID, err)
-		return
-	}
-
-	for _, msg := range messages {
-		if msg.Type != discordgo.MessageTypeDefault {
-			delErr := ma.s.ChannelMessageDelete(threadID, msg.ID)
-			if delErr != nil {
-				log.Printf("failed to delete system message %s (type %d): %s", msg.ID, msg.Type, delErr)
-			}
+	if message != "" {
+		_, sendErr := ma.s.ChannelMessageSendComplex(threadID, &discordgo.MessageSend{
+			Content: message,
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeRoles},
+			},
+		})
+		if sendErr != nil {
+			log.Printf("failed to send thread message in %s: %s", threadID, sendErr)
 		}
 	}
+
+	return nil
 }
 
 func (ma *MemberAdder) fetchMembersWithRole(roleID string) ([]*discordgo.Member, error) {

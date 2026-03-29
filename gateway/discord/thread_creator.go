@@ -26,7 +26,7 @@ func NewThreadCreator(s *discordgo.Session) *ThreadCreator {
 }
 
 func (tc *ThreadCreator) CreateThread(
-	_ context.Context, channelID string, name string, message string,
+	_ context.Context, channelID string, name string,
 ) (string, error) {
 	thread, err := tc.s.ThreadStartComplex(channelID, &discordgo.ThreadStart{
 		Name: name,
@@ -36,17 +36,25 @@ func (tc *ThreadCreator) CreateThread(
 		return "", fmt.Errorf("error creating thread: %w", err)
 	}
 
-	if message != "" {
-		_, err = tc.s.ChannelMessageSendComplex(thread.ID, &discordgo.MessageSend{
-			Content: message,
-			AllowedMentions: &discordgo.MessageAllowedMentions{
-				Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeRoles},
-			},
-		})
-		if err != nil {
-			return "", fmt.Errorf("error sending thread message: %w", err)
-		}
+	return thread.ID, nil
+}
+
+func (tc *ThreadCreator) SendThreadMessage(
+	_ context.Context, threadID string, message string,
+) error {
+	if message == "" {
+		return nil
 	}
 
-	return thread.ID, nil
+	_, err := tc.s.ChannelMessageSendComplex(threadID, &discordgo.MessageSend{
+		Content: message,
+		AllowedMentions: &discordgo.MessageAllowedMentions{
+			Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeRoles},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("error sending thread message: %w", err)
+	}
+
+	return nil
 }
