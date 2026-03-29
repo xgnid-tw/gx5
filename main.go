@@ -58,7 +58,8 @@ func main() {
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
-	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator, nil, cfg.TagRoleMap)
+	memberAdder := discordgw.NewMemberAdder(dc, cfg.DiscordGuildID)
+	createOrderUC := usecase.NewCreateOrder(orderRepo, threadCreator, memberAdder, cfg.TagRoleMap)
 
 	txRepo := notiongw.NewTransactionRepository(notionClient.Page)
 	buyUC := usecase.NewRegisterBuyRecord(repo, txRepo, cfg.ExchangeRateJPYTWD)

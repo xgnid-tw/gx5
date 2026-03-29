@@ -25,7 +25,9 @@ func NewThreadCreator(s *discordgo.Session) *ThreadCreator {
 	return &ThreadCreator{s: s}
 }
 
-func (tc *ThreadCreator) CreateThread(_ context.Context, channelID string, name string, message string) (string, error) {
+func (tc *ThreadCreator) CreateThread(
+	_ context.Context, channelID string, name string, message string,
+) (string, error) {
 	thread, err := tc.s.ThreadStartComplex(channelID, &discordgo.ThreadStart{
 		Name: name,
 		Type: discordgo.ChannelTypeGuildPublicThread,

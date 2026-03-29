@@ -45,7 +45,8 @@ func (uc *CreateOrder) Execute(
 
 	if order.Tag != "" {
 		if roleID, ok := uc.tagRoleMap[string(order.Tag)]; ok && uc.memberAdder != nil {
-			if addErr := uc.memberAdder.AddRoleMembersToThread(ctx, threadID, roleID); addErr != nil {
+			addErr := uc.memberAdder.AddRoleMembersToThread(ctx, threadID, roleID)
+			if addErr != nil {
 				log.Printf("add role members to thread: %s", addErr)
 			}
 		}
