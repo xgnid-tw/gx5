@@ -25,13 +25,15 @@ func NewThreadCreator(s *discordgo.Session) *ThreadCreator {
 	return &ThreadCreator{s: s}
 }
 
-func (tc *ThreadCreator) CreateThread(_ context.Context, channelID string, name string, message string) error {
+func (tc *ThreadCreator) CreateThread(
+	_ context.Context, channelID string, name string, message string,
+) (string, error) {
 	thread, err := tc.s.ThreadStartComplex(channelID, &discordgo.ThreadStart{
 		Name: name,
 		Type: discordgo.ChannelTypeGuildPublicThread,
 	})
 	if err != nil {
-		return fmt.Errorf("error creating thread: %w", err)
+		return "", fmt.Errorf("error creating thread: %w", err)
 	}
 
 	if message != "" {
@@ -42,9 +44,9 @@ func (tc *ThreadCreator) CreateThread(_ context.Context, channelID string, name 
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("error sending thread message: %w", err)
+			return "", fmt.Errorf("error sending thread message: %w", err)
 		}
 	}
 
-	return nil
+	return thread.ID, nil
 }

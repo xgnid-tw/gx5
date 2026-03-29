@@ -14,21 +14,31 @@ type ThreadCreator struct {
 }
 
 // CreateThread provides a mock function with given fields: ctx, channelID, name, message
-func (_m *ThreadCreator) CreateThread(ctx context.Context, channelID string, name string, message string) error {
+func (_m *ThreadCreator) CreateThread(ctx context.Context, channelID string, name string, message string) (string, error) {
 	ret := _m.Called(ctx, channelID, name, message)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateThread")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) (string, error)); ok {
+		return rf(ctx, channelID, name, message)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) string); ok {
 		r0 = rf(ctx, channelID, name, message)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(string)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = rf(ctx, channelID, name, message)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NewThreadCreator creates a new instance of ThreadCreator. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
