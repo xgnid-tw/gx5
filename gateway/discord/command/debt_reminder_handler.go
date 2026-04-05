@@ -14,7 +14,10 @@ import (
 
 const (
 	debtReminderCommandName = "debt-reminder"
+	debtReminderOptionDays  = "days"
+	debtReminderOptionDebug = "debug"
 	defaultDays             = 15
+	minDays                 = 1
 )
 
 // RegisterDebtReminderCommand registers the /debt-reminder slash command and its handler.
@@ -28,13 +31,13 @@ func RegisterDebtReminderCommand(ch *Handler, uc port.DebtReminder, scheduler go
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionInteger,
-				Name:        "days",
+				Name:        debtReminderOptionDays,
 				Description: "幾天後再次執行（預設 15 天）",
 				Required:    false,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionBoolean,
-				Name:        "debug",
+				Name:        debtReminderOptionDebug,
 				Description: "除錯模式（僅傳送至 log 頻道，不發送 DM）",
 				Required:    false,
 			},
@@ -60,12 +63,17 @@ func handleDebtReminder(
 	}
 
 	days := int64(defaultDays)
-	if v, ok := optMap["days"]; ok {
+	if v, ok := optMap[debtReminderOptionDays]; ok {
 		days = v.IntValue()
 	}
 
+	if days < minDays {
+		editDeferredResponse(s, i, fmt.Sprintf("天數必須至少為 %d", minDays))
+		return
+	}
+
 	debug := false
-	if v, ok := optMap["debug"]; ok {
+	if v, ok := optMap[debtReminderOptionDebug]; ok {
 		debug = v.BoolValue()
 	}
 
@@ -73,6 +81,9 @@ func handleDebtReminder(
 	err := uc.Execute(context.Background(), debug)
 	if err != nil {
 		log.Printf("debt-reminder immediate run failed: %s", err)
+		editDeferredResponse(s, i, fmt.Sprintf("提醒執行失敗: %s", err))
+
+		return
 	}
 
 	// Schedule delayed production run
