@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -31,8 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid config: %s", err)
 	}
-
-	ctx := context.Background()
 
 	// Initialize external service clients
 	dc, err := discordgo.New(cfg.DiscordToken)
@@ -66,33 +63,15 @@ func main() {
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
-	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
-
-	// In debug mode, run the job every minute
-	crontab := cfg.WorkerCrontab
-
-	if cfg.Debug {
-		crontab = "*/1 * * * *"
-	}
-
+	// Scheduler for one-shot delayed jobs
 	s, err := gocron.NewScheduler(gocron.WithLocation(loc))
 	if err != nil {
 		log.Fatalf("can not create scheduler: %s", err)
 	}
 
-	// Register the unpaid notification job on the configured cron schedule
-	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
-		log.Print("run job")
-
-		err := notifyUnpaidUC.Execute(ctx, cfg.Debug)
-		if err != nil {
-			log.Printf("worker: %s", err)
-		}
-	}))
-	if err != nil {
-		log.Fatalf("can not start scheduler: %s", err)
-	}
+	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
+	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
+	discordcmd.RegisterDebtReminderCommand(cmdHandler, notifyUnpaidUC, s)
 
 	// Open Discord connection and start the scheduler
 	err = dc.Open()
