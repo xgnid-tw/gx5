@@ -17,7 +17,6 @@ type Config struct {
 	DiscordGuildID      string
 	DiscordLogChannelID string
 	ExchangeRateJPYTWD  float64
-	WorkerCrontab       string
 	Debug               bool
 	TagRoleMap          map[string]string
 }
@@ -32,7 +31,6 @@ func Load() (Config, error) {
 		DiscordAppID:        os.Getenv("DISCORD_APP_ID"),
 		DiscordGuildID:      os.Getenv("DISCORD_GUILD_ID"),
 		DiscordLogChannelID: os.Getenv("DISCORD_GUILD_LOG_CHANNEL_ID"),
-		WorkerCrontab:       os.Getenv("WORKER_CORNTAB"),
 		Debug:               os.Getenv("DEBUG") == "1",
 	}
 	cfg.TagRoleMap = parseTagRoleMap(os.Getenv("TAG_ROLE_MAP"))
@@ -70,10 +68,6 @@ func Load() (Config, error) {
 
 	if cfg.DiscordLogChannelID == "" {
 		return Config{}, fmt.Errorf("DISCORD_GUILD_LOG_CHANNEL_ID is required")
-	}
-
-	if cfg.WorkerCrontab == "" {
-		return Config{}, fmt.Errorf("WORKER_CORNTAB is required")
 	}
 
 	if cfg.NotionOrderDBID == "" {
