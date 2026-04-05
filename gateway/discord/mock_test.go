@@ -29,6 +29,6 @@ func (m *mockDiscordSession) ChannelMessageSend(
 	return m.channelMessageSendFn(channelID, content, options...)
 }
 
-func newTestNotifier(s discordSession, logChannelID string, debug bool) *Notifier {
-	return &Notifier{s: s, logChannelID: logChannelID, debug: debug}
+func newTestNotifier(s discordSession, logChannelID string) *Notifier {
+	return &Notifier{s: s, logChannelID: logChannelID}
 }

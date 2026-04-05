@@ -19,23 +19,22 @@ type discordSession interface {
 type Notifier struct {
 	s            discordSession
 	logChannelID string
-	debug        bool
 }
 
-func NewNotifier(s *discordgo.Session, logChannelID string, debug bool) *Notifier {
-	return &Notifier{s: s, logChannelID: logChannelID, debug: debug}
+func NewNotifier(s *discordgo.Session, logChannelID string) *Notifier {
+	return &Notifier{s: s, logChannelID: logChannelID}
 }
 
-func (n *Notifier) Notify(_ context.Context, user domain.User) error {
+func (n *Notifier) Notify(_ context.Context, user domain.User, debug bool) error {
 	message := fmt.Sprintf(
 		"[欠費提醒] https://www.notion.so/%s (如果有漏登聯絡一下XG) ",
 		user.NotionID,
 	)
 
-	return n.sendDM(user.DiscordID, message)
+	return n.sendDM(user.DiscordID, message, debug)
 }
 
-func (n *Notifier) sendDM(discordID string, message string) error {
+func (n *Notifier) sendDM(discordID string, message string, debug bool) error {
 	channel, err := n.s.UserChannelCreate(discordID)
 	if err != nil {
 		return fmt.Errorf("error creating channel: %w", err)
@@ -46,7 +45,7 @@ func (n *Notifier) sendDM(discordID string, message string) error {
 		return fmt.Errorf("error sending to log channel: %w", err)
 	}
 
-	if n.debug {
+	if debug {
 		log.Print("debug mode on")
 		return nil
 	}
