@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
@@ -33,8 +31,6 @@ func main() {
 		log.Fatalf("invalid config: %s", err)
 	}
 
-	ctx := context.Background()
-
 	// Initialize external service clients
 	dc, err := discordgo.New(cfg.DiscordToken)
 	if err != nil {
@@ -45,7 +41,7 @@ func main() {
 
 	notionClient := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
 
-	// Load Asia/Tokyo timezone for scheduler and use case day guard
+	// Load Asia/Tokyo timezone for scheduler
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		log.Fatalf("invalid location: %s", err)
@@ -53,8 +49,8 @@ func main() {
 
 	// Wire dependencies: gateway adapters -> use cases
 	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
-	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
-	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID)
+	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID)
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
@@ -67,36 +63,15 @@ func main() {
 	// Register Discord application commands
 	cmdHandler := discordcmd.NewHandler(dc, cfg.DiscordAppID)
 
-	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
-	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
-
-	// In debug mode, fake the clock and run the job every minute
-	crontab := cfg.WorkerCrontab
-
-	if cfg.Debug {
-		clk := clock.NewMock()
-		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
-		notifyUnpaidUC.Clock = clk
-		crontab = "*/1 * * * *"
-	}
-
+	// Scheduler for one-shot delayed jobs
 	s, err := gocron.NewScheduler(gocron.WithLocation(loc))
 	if err != nil {
 		log.Fatalf("can not create scheduler: %s", err)
 	}
 
-	// Register the unpaid notification job on the configured cron schedule
-	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
-		log.Print("run job")
-
-		err := notifyUnpaidUC.Execute(ctx)
-		if err != nil {
-			log.Printf("worker: %s", err)
-		}
-	}))
-	if err != nil {
-		log.Fatalf("can not start scheduler: %s", err)
-	}
+	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
+	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
+	discordcmd.RegisterDebtReminderCommand(cmdHandler, notifyUnpaidUC, s)
 
 	// Open Discord connection and start the scheduler
 	err = dc.Open()

@@ -127,10 +127,9 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 
 ## Key Design Decisions
 
-- **Scheduling:** gocron with Asia/Tokyo timezone; cron expression from `WORKER_CORNTAB` env var
+- **Scheduling:** gocron with Asia/Tokyo timezone; `/debt-reminder` slash command triggers immediate run + one-shot delayed run
 - **Notification threshold:** Personal DB: per-currency (TWD > 2000, JPY > 8000) defined as `notificationAmountLimit` in `usecase/notify_unpaid.go`; Others DB: any amount > 0
-- **Notification schedule:** Users are notified on the 1st and 15th of each month
-- **Debug mode:** `DEBUG=1` disables actual Discord DMs (logs only) and fakes time to the 1st via `clock.NewMock()`
+- **Debug mode:** `/debt-reminder debug:true` sends reminders to log channel only (no DMs); the delayed run always uses production mode
 - **No channel passing:** use case calls notifier directly; one failure does not block other users (logged, not fatal)
 
 ---
@@ -149,8 +148,6 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 | `NOTION_OTHERS_DB_ID` | Notion shared "其他" database ID |
 | `NOTION_ORDER_DB_ID` | Notion Order List database ID (TBL-004) |
 | `EXCHANGE_RATE_JPY_TWD` | JPY to TWD exchange rate (e.g. `0.24`) |
-| `WORKER_CORNTAB` | Cron schedule (e.g. `*/1 * * * *`) |
-| `DEBUG` | Set to `1` to enable debug mode |
 | `TAG_ROLE_MAP` | Comma-separated tag=roleID pairs for Discord role mentions |
 
 ---

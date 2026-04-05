@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/chigopher/pathlib v0.19.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect

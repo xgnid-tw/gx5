@@ -23,8 +23,8 @@ func TestNotify_DebugMode_SkipsDM(t *testing.T) {
 		},
 	}
 
-	n := newTestNotifier(m, "log-chan", true)
-	err := n.Notify(context.Background(), testUser)
+	n := newTestNotifier(m, "log-chan")
+	err := n.Notify(context.Background(), testUser, true)
 
 	require.NoError(t, err)
 	require.Len(t, m.sentMessages, 1)
@@ -41,8 +41,8 @@ func TestNotify_NormalMode_SendsDM(t *testing.T) {
 		},
 	}
 
-	n := newTestNotifier(m, "log-chan", false)
-	err := n.Notify(context.Background(), testUser)
+	n := newTestNotifier(m, "log-chan")
+	err := n.Notify(context.Background(), testUser, false)
 
 	require.NoError(t, err)
 	require.Len(t, m.sentMessages, 2)
@@ -61,8 +61,8 @@ func TestNotify_UserChannelCreateFails(t *testing.T) {
 		},
 	}
 
-	n := newTestNotifier(m, "log-chan", false)
-	err := n.Notify(context.Background(), testUser)
+	n := newTestNotifier(m, "log-chan")
+	err := n.Notify(context.Background(), testUser, false)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "error creating channel")
@@ -78,8 +78,8 @@ func TestNotify_LogChannelSendFails(t *testing.T) {
 		},
 	}
 
-	n := newTestNotifier(m, "log-chan", false)
-	err := n.Notify(context.Background(), testUser)
+	n := newTestNotifier(m, "log-chan")
+	err := n.Notify(context.Background(), testUser, false)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "error sending to log channel")
@@ -101,8 +101,8 @@ func TestNotify_DMSendFails(t *testing.T) {
 		},
 	}
 
-	n := newTestNotifier(m, "log-chan", false)
-	err := n.Notify(context.Background(), testUser)
+	n := newTestNotifier(m, "log-chan")
+	err := n.Notify(context.Background(), testUser, false)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "error sending dm")

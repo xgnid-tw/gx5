@@ -14,17 +14,17 @@ type Notifier struct {
 	mock.Mock
 }
 
-// Notify provides a mock function with given fields: ctx, user
-func (_m *Notifier) Notify(ctx context.Context, user domain.User) error {
-	ret := _m.Called(ctx, user)
+// Notify provides a mock function with given fields: ctx, user, debug
+func (_m *Notifier) Notify(ctx context.Context, user domain.User, debug bool) error {
+	ret := _m.Called(ctx, user, debug)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Notify")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.User) error); ok {
-		r0 = rf(ctx, user)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.User, bool) error); ok {
+		r0 = rf(ctx, user, debug)
 	} else {
 		r0 = ret.Error(0)
 	}
