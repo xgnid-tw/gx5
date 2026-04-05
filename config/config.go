@@ -10,7 +10,6 @@ import (
 type Config struct {
 	NotionToken         string
 	NotionUserDBID      string
-	NotionOthersDBID    string
 	NotionOrderDBID     string
 	DiscordToken        string
 	DiscordAppID        string
@@ -24,7 +23,6 @@ func Load() (Config, error) {
 	cfg := Config{
 		NotionToken:         os.Getenv("NOTION_TOKEN"),
 		NotionUserDBID:      os.Getenv("NOTION_USER_DB_ID"),
-		NotionOthersDBID:    os.Getenv("NOTION_OTHERS_DB_ID"),
 		NotionOrderDBID:     os.Getenv("NOTION_ORDER_DB_ID"),
 		DiscordToken:        os.Getenv("DISCORD_TOKEN"),
 		DiscordAppID:        os.Getenv("DISCORD_APP_ID"),
@@ -46,10 +44,6 @@ func Load() (Config, error) {
 
 	if cfg.NotionUserDBID == "" {
 		return Config{}, fmt.Errorf("NOTION_USER_DB_ID is required")
-	}
-
-	if cfg.NotionOthersDBID == "" {
-		return Config{}, fmt.Errorf("NOTION_OTHERS_DB_ID is required")
 	}
 
 	if cfg.DiscordToken == "" {

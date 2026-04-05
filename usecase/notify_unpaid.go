@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/xgnid-tw/gx5/domain"
 	"github.com/xgnid-tw/gx5/port"
@@ -12,6 +13,7 @@ import (
 const (
 	twdNotificationThreshold = 2000
 	jpyNotificationThreshold = 8000
+	overdueMonths            = 3
 )
 
 var notificationAmountLimit = map[domain.Currency]float64{
@@ -20,18 +22,17 @@ var notificationAmountLimit = map[domain.Currency]float64{
 }
 
 type NotifyUnpaid struct {
-	repo       port.UserRepository
-	notifier   port.Notifier
-	othersDBID string
+	repo     port.UserRepository
+	notifier port.Notifier
+	now      func() time.Time
 }
 
 func NewNotifyUnpaid(
 	repo port.UserRepository, notifier port.Notifier,
-	othersDBID string,
 ) *NotifyUnpaid {
 	return &NotifyUnpaid{
 		repo: repo, notifier: notifier,
-		othersDBID: othersDBID,
+		now: time.Now,
 	}
 }
 
@@ -61,19 +62,21 @@ func (uc *NotifyUnpaid) Execute(ctx context.Context, debug bool) error {
 func (uc *NotifyUnpaid) shouldNotifyUser(
 	ctx context.Context, u *domain.User,
 ) (bool, error) {
-	if u.NotionID != uc.othersDBID {
-		a, err := uc.repo.GetUnpaidAmount(ctx, u.NotionID, u.Currency)
-		if err != nil {
-			return false, fmt.Errorf("get unpaid amount for %s: %w", u.Name, err)
-		}
-
-		return a > notificationAmountLimit[u.Currency], nil
-	}
-
-	a, err := uc.repo.GetOthersUnpaidAmount(ctx, u.Name, u.Currency)
+	summary, err := uc.repo.GetUnpaidSummary(ctx, u.NotionID, u.Currency)
 	if err != nil {
-		return false, fmt.Errorf("get others unpaid amount for %s: %w", u.Name, err)
+		return false, fmt.Errorf("get unpaid summary for %s: %w", u.Name, err)
 	}
 
-	return a > 0, nil
+	if summary.TotalAmount > notificationAmountLimit[u.Currency] {
+		return true, nil
+	}
+
+	if summary.TotalAmount > 0 && !summary.OldestRecordAt.IsZero() {
+		cutoff := uc.now().AddDate(0, -overdueMonths, 0)
+		if summary.OldestRecordAt.Before(cutoff) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

@@ -2,6 +2,7 @@ package notion
 
 import (
 	"context"
+	"time"
 
 	"github.com/jomei/notionapi"
 )
@@ -38,9 +39,8 @@ func (m *mockDatabaseService) Update(
 
 func newTestRepository(db notionapi.DatabaseService, userDBID string) *Repository {
 	return &Repository{
-		db:         db,
-		userDBID:   notionapi.DatabaseID(userDBID),
-		othersDBID: notionapi.DatabaseID("others-db"),
+		db:       db,
+		userDBID: notionapi.DatabaseID(userDBID),
 	}
 }
 
@@ -90,7 +90,12 @@ func (m *mockPageService) Update(
 }
 
 func makeAmountPage(column string, amount float64) notionapi.Page {
+	return makeAmountPageWithTime(column, amount, time.Now())
+}
+
+func makeAmountPageWithTime(column string, amount float64, createdAt time.Time) notionapi.Page {
 	return notionapi.Page{
+		CreatedTime: createdAt,
 		Properties: notionapi.Properties{
 			column: &notionapi.NumberProperty{Number: amount},
 		},

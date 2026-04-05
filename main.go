@@ -48,9 +48,9 @@ func main() {
 	}
 
 	// Wire dependencies: gateway adapters -> use cases
-	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
+	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID)
 	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID)
-	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID)
+	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier)
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)

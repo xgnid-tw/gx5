@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/xgnid-tw/gx5/domain"
 	"github.com/xgnid-tw/gx5/mocks"
+	"github.com/xgnid-tw/gx5/port"
 	"github.com/xgnid-tw/gx5/usecase"
 )
-
-const testOthersDBID = "others-db"
 
 func TestExecute_GetUsersError(t *testing.T) {
 	repo := mocks.NewUserRepository(t)
@@ -21,7 +21,7 @@ func TestExecute_GetUsersError(t *testing.T) {
 
 	repo.On("GetUsers", mock.Anything).Return(nil, errors.New("db error"))
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 
@@ -29,7 +29,7 @@ func TestExecute_GetUsersError(t *testing.T) {
 	require.ErrorContains(t, err, "get users")
 }
 
-func TestExecute_GetUnpaidAmountError(t *testing.T) {
+func TestExecute_GetUnpaidSummaryError(t *testing.T) {
 	repo := mocks.NewUserRepository(t)
 	notifier := mocks.NewNotifier(t)
 
@@ -39,39 +39,18 @@ func TestExecute_GetUnpaidAmountError(t *testing.T) {
 	}
 
 	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetUnpaidAmount", mock.Anything, "abc", domain.CurrencyTWD).
-		Return(float64(0), errors.New("notion error"))
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(nil, errors.New("notion error"))
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 
 	require.Error(t, err)
-	require.ErrorContains(t, err, "get unpaid amount")
+	require.ErrorContains(t, err, "get unpaid summary")
 }
 
-func TestExecute_GetOthersUnpaidAmountError(t *testing.T) {
-	repo := mocks.NewUserRepository(t)
-	notifier := mocks.NewNotifier(t)
-
-	user := &domain.User{
-		DiscordID: "111", Name: "Alice",
-		NotionID: testOthersDBID, Currency: domain.CurrencyTWD,
-	}
-
-	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetOthersUnpaidAmount", mock.Anything, "Alice", domain.CurrencyTWD).
-		Return(float64(0), errors.New("notion error"))
-
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
-
-	err := uc.Execute(context.Background(), false)
-
-	require.Error(t, err)
-	require.ErrorContains(t, err, "get others unpaid amount")
-}
-
-func TestExecute_PersonalDB_AboveThreshold_Notified(t *testing.T) {
+func TestExecute_AboveThreshold_Notified(t *testing.T) {
 	repo := mocks.NewUserRepository(t)
 	notifier := mocks.NewNotifier(t)
 
@@ -81,39 +60,18 @@ func TestExecute_PersonalDB_AboveThreshold_Notified(t *testing.T) {
 	}
 
 	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetUnpaidAmount", mock.Anything, "abc", domain.CurrencyTWD).
-		Return(float64(3000), nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 3000, OldestRecordAt: time.Now()}, nil)
 	notifier.On("Notify", mock.Anything, *user, false).Return(nil)
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 
 	require.NoError(t, err)
 }
 
-func TestExecute_OthersDB_AboveThreshold_Notified(t *testing.T) {
-	repo := mocks.NewUserRepository(t)
-	notifier := mocks.NewNotifier(t)
-
-	user := &domain.User{
-		DiscordID: "333", Name: "Carol",
-		NotionID: testOthersDBID, Currency: domain.CurrencyTWD,
-	}
-
-	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetOthersUnpaidAmount", mock.Anything, "Carol", domain.CurrencyTWD).
-		Return(float64(2500), nil)
-	notifier.On("Notify", mock.Anything, *user, false).Return(nil)
-
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
-
-	err := uc.Execute(context.Background(), false)
-
-	require.NoError(t, err)
-}
-
-func TestExecute_PersonalDB_ZeroAmount_NotNotified(t *testing.T) {
+func TestExecute_BelowThreshold_NotNotified(t *testing.T) {
 	repo := mocks.NewUserRepository(t)
 	notifier := mocks.NewNotifier(t)
 
@@ -123,30 +81,75 @@ func TestExecute_PersonalDB_ZeroAmount_NotNotified(t *testing.T) {
 	}
 
 	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetUnpaidAmount", mock.Anything, "abc", domain.CurrencyTWD).
-		Return(float64(0), nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 500, OldestRecordAt: time.Now()}, nil)
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 
 	require.NoError(t, err)
 }
 
-func TestExecute_OthersDB_ZeroAmount_NotNotified(t *testing.T) {
+func TestExecute_ZeroAmount_NotNotified(t *testing.T) {
 	repo := mocks.NewUserRepository(t)
 	notifier := mocks.NewNotifier(t)
 
 	user := &domain.User{
-		DiscordID: "333", Name: "Carol",
-		NotionID: testOthersDBID, Currency: domain.CurrencyTWD,
+		DiscordID: "111", Name: "Alice",
+		NotionID: "abc", Currency: domain.CurrencyTWD,
 	}
 
 	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
-	repo.On("GetOthersUnpaidAmount", mock.Anything, "Carol", domain.CurrencyTWD).
-		Return(float64(0), nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{}, nil)
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
+
+	err := uc.Execute(context.Background(), false)
+
+	require.NoError(t, err)
+}
+
+func TestExecute_BelowThreshold_OlderThan3Months_Notified(t *testing.T) {
+	repo := mocks.NewUserRepository(t)
+	notifier := mocks.NewNotifier(t)
+
+	user := &domain.User{
+		DiscordID: "111", Name: "Alice",
+		NotionID: "abc", Currency: domain.CurrencyTWD,
+	}
+
+	fourMonthsAgo := time.Now().AddDate(0, -4, 0)
+
+	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 500, OldestRecordAt: fourMonthsAgo}, nil)
+	notifier.On("Notify", mock.Anything, *user, false).Return(nil)
+
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
+
+	err := uc.Execute(context.Background(), false)
+
+	require.NoError(t, err)
+}
+
+func TestExecute_BelowThreshold_Within3Months_NotNotified(t *testing.T) {
+	repo := mocks.NewUserRepository(t)
+	notifier := mocks.NewNotifier(t)
+
+	user := &domain.User{
+		DiscordID: "111", Name: "Alice",
+		NotionID: "abc", Currency: domain.CurrencyTWD,
+	}
+
+	twoMonthsAgo := time.Now().AddDate(0, -2, 0)
+
+	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user}, nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 500, OldestRecordAt: twoMonthsAgo}, nil)
+
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 
@@ -167,15 +170,15 @@ func TestExecute_NotifyError_ContinuesNextUser(t *testing.T) {
 	}
 
 	repo.On("GetUsers", mock.Anything).Return([]*domain.User{user1, user2}, nil)
-	repo.On("GetUnpaidAmount", mock.Anything, "abc", domain.CurrencyTWD).
-		Return(float64(3000), nil)
-	repo.On("GetUnpaidAmount", mock.Anything, "def", domain.CurrencyTWD).
-		Return(float64(3000), nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "abc", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 3000, OldestRecordAt: time.Now()}, nil)
+	repo.On("GetUnpaidSummary", mock.Anything, "def", domain.CurrencyTWD).
+		Return(&port.UnpaidSummary{TotalAmount: 3000, OldestRecordAt: time.Now()}, nil)
 	notifier.On("Notify", mock.Anything, *user1, false).
 		Return(errors.New("discord error"))
 	notifier.On("Notify", mock.Anything, *user2, false).Return(nil)
 
-	uc := usecase.NewNotifyUnpaid(repo, notifier, testOthersDBID)
+	uc := usecase.NewNotifyUnpaid(repo, notifier)
 
 	err := uc.Execute(context.Background(), false)
 

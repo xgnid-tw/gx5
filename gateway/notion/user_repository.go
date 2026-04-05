@@ -7,6 +7,7 @@ import (
 	"github.com/jomei/notionapi"
 
 	"github.com/xgnid-tw/gx5/domain"
+	"github.com/xgnid-tw/gx5/port"
 )
 
 var currencyColumnMap = map[domain.Currency]string{
@@ -16,16 +17,14 @@ var currencyColumnMap = map[domain.Currency]string{
 
 // Repository implements port.UserRepository using the Notion API.
 type Repository struct {
-	db         notionapi.DatabaseService
-	userDBID   notionapi.DatabaseID
-	othersDBID notionapi.DatabaseID
+	db       notionapi.DatabaseService
+	userDBID notionapi.DatabaseID
 }
 
-func NewRepository(db notionapi.DatabaseService, userDBID string, othersDBID string) *Repository {
+func NewRepository(db notionapi.DatabaseService, userDBID string) *Repository {
 	return &Repository{
-		db:         db,
-		userDBID:   notionapi.DatabaseID(userDBID),
-		othersDBID: notionapi.DatabaseID(othersDBID),
+		db:       db,
+		userDBID: notionapi.DatabaseID(userDBID),
 	}
 }
 
@@ -84,12 +83,12 @@ func (r *Repository) GetUserByDiscordID(ctx context.Context, discordID string) (
 	return nil, fmt.Errorf("user not found for discord_id: %s", discordID)
 }
 
-func (r *Repository) GetUnpaidAmount(
+func (r *Repository) GetUnpaidSummary(
 	ctx context.Context, userDatabaseID string, currency domain.Currency,
-) (float64, error) {
+) (*port.UnpaidSummary, error) {
 	col, ok := currencyColumnMap[currency]
 	if !ok {
-		return 0, fmt.Errorf("unsupported currency: %s", currency)
+		return nil, fmt.Errorf("unsupported currency: %s", currency)
 	}
 
 	filter := &notionapi.PropertyFilter{
@@ -101,61 +100,25 @@ func (r *Repository) GetUnpaidAmount(
 		Filter: filter,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("notion database query failed: %w", err)
+		return nil, fmt.Errorf("notion database query failed: %w", err)
 	}
 
-	total := float64(0)
+	summary := &port.UnpaidSummary{}
 
 	for _, p := range res.Results {
 		amount, ok := getNumberContent(p.Properties[col])
 		if !ok {
-			return 0, fmt.Errorf("failed to fetch amount column")
+			return nil, fmt.Errorf("failed to fetch amount column")
 		}
 
-		total += amount
-	}
+		summary.TotalAmount += amount
 
-	return total, nil
-}
-
-func (r *Repository) GetOthersUnpaidAmount(
-	ctx context.Context, buyerName string, currency domain.Currency,
-) (float64, error) {
-	col, ok := currencyColumnMap[currency]
-	if !ok {
-		return 0, fmt.Errorf("unsupported currency: %s", currency)
-	}
-
-	filter := notionapi.AndCompoundFilter{
-		notionapi.PropertyFilter{
-			Property: "購買人",
-			Select:   &notionapi.SelectFilterCondition{Equals: buyerName},
-		},
-		notionapi.PropertyFilter{
-			Property: "付款狀況",
-			Select:   &notionapi.SelectFilterCondition{Equals: "尚未付款"},
-		},
-	}
-
-	res, err := r.db.Query(ctx, r.othersDBID, &notionapi.DatabaseQueryRequest{
-		Filter: filter,
-	})
-	if err != nil {
-		return 0, fmt.Errorf("notion database query failed: %w", err)
-	}
-
-	total := float64(0)
-
-	for _, p := range res.Results {
-		amount, ok := getNumberContent(p.Properties[col])
-		if !ok {
-			return 0, fmt.Errorf("failed to fetch amount column")
+		if summary.OldestRecordAt.IsZero() || p.CreatedTime.Before(summary.OldestRecordAt) {
+			summary.OldestRecordAt = p.CreatedTime
 		}
-
-		total += amount
 	}
 
-	return total, nil
+	return summary, nil
 }
 
 func getTitleContent(p notionapi.Property) (string, bool) {

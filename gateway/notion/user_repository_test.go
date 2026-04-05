@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jomei/notionapi"
 	"github.com/stretchr/testify/require"
@@ -188,9 +189,9 @@ func TestGetUsers_MissingCurrency(t *testing.T) {
 	require.ErrorContains(t, err, "failed to fetch currency column")
 }
 
-// --- GetUnpaidAmount tests ---
+// --- GetUnpaidSummary tests ---
 
-func TestGetUnpaidAmount_Success(t *testing.T) {
+func TestGetUnpaidSummary_Success(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
@@ -207,13 +208,13 @@ func TestGetUnpaidAmount_Success(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.CurrencyTWD)
+	summary, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyTWD)
 
 	require.NoError(t, err)
-	require.Equal(t, 1500.0, total)
+	require.Equal(t, 1500.0, summary.TotalAmount)
 }
 
-func TestGetUnpaidAmount_JPY(t *testing.T) {
+func TestGetUnpaidSummary_JPY(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
@@ -228,13 +229,13 @@ func TestGetUnpaidAmount_JPY(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.CurrencyJPY)
+	summary, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyJPY)
 
 	require.NoError(t, err)
-	require.Equal(t, 8000.0, total)
+	require.Equal(t, 8000.0, summary.TotalAmount)
 }
 
-func TestGetUnpaidAmount_EmptyResult(t *testing.T) {
+func TestGetUnpaidSummary_EmptyResult(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
@@ -244,13 +245,39 @@ func TestGetUnpaidAmount_EmptyResult(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.CurrencyTWD)
+	summary, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyTWD)
 
 	require.NoError(t, err)
-	require.Equal(t, 0.0, total)
+	require.Equal(t, 0.0, summary.TotalAmount)
+	require.True(t, summary.OldestRecordAt.IsZero())
 }
 
-func TestGetUnpaidAmount_QueryError(t *testing.T) {
+func TestGetUnpaidSummary_TracksOldestRecord(t *testing.T) {
+	older := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	newer := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	db := &mockDatabaseService{
+		queryFn: func(
+			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
+		) (*notionapi.DatabaseQueryResponse, error) {
+			return &notionapi.DatabaseQueryResponse{
+				Results: []notionapi.Page{
+					makeAmountPageWithTime("台幣", 1000, newer),
+					makeAmountPageWithTime("台幣", 500, older),
+				},
+			}, nil
+		},
+	}
+
+	repo := newTestRepository(db, "user-db")
+	summary, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyTWD)
+
+	require.NoError(t, err)
+	require.Equal(t, 1500.0, summary.TotalAmount)
+	require.Equal(t, older, summary.OldestRecordAt)
+}
+
+func TestGetUnpaidSummary_QueryError(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
@@ -260,13 +287,13 @@ func TestGetUnpaidAmount_QueryError(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	_, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.CurrencyTWD)
+	_, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyTWD)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "notion database query failed")
 }
 
-func TestGetUnpaidAmount_UnsupportedCurrency(t *testing.T) {
+func TestGetUnpaidSummary_UnsupportedCurrency(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
@@ -276,13 +303,13 @@ func TestGetUnpaidAmount_UnsupportedCurrency(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	_, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.Currency("USD"))
+	_, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.Currency("USD"))
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "unsupported currency")
 }
 
-func TestGetUnpaidAmount_MissingAmountColumn(t *testing.T) {
+func TestGetUnpaidSummary_MissingAmountColumn(t *testing.T) {
 	db := &mockDatabaseService{
 		queryFn: func(
 			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
@@ -296,104 +323,10 @@ func TestGetUnpaidAmount_MissingAmountColumn(t *testing.T) {
 	}
 
 	repo := newTestRepository(db, "user-db")
-	_, err := repo.GetUnpaidAmount(context.Background(), "tx-db", domain.CurrencyTWD)
+	_, err := repo.GetUnpaidSummary(context.Background(), "tx-db", domain.CurrencyTWD)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "failed to fetch amount column")
-}
-
-// --- GetOthersUnpaidAmount tests ---
-
-func TestGetOthersUnpaidAmount_Success(t *testing.T) {
-	db := &mockDatabaseService{
-		queryFn: func(
-			_ context.Context, id notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
-		) (*notionapi.DatabaseQueryResponse, error) {
-			require.Equal(t, notionapi.DatabaseID("others-db"), id)
-
-			return &notionapi.DatabaseQueryResponse{
-				Results: []notionapi.Page{
-					makeAmountPage("台幣", 800),
-					makeAmountPage("台幣", 200),
-				},
-			}, nil
-		},
-	}
-
-	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetOthersUnpaidAmount(context.Background(), "Alice", domain.CurrencyTWD)
-
-	require.NoError(t, err)
-	require.Equal(t, 1000.0, total)
-}
-
-func TestGetOthersUnpaidAmount_JPY(t *testing.T) {
-	db := &mockDatabaseService{
-		queryFn: func(
-			_ context.Context, _ notionapi.DatabaseID, _ *notionapi.DatabaseQueryRequest,
-		) (*notionapi.DatabaseQueryResponse, error) {
-			return &notionapi.DatabaseQueryResponse{
-				Results: []notionapi.Page{
-					makeAmountPage("日幣", 4000),
-					makeAmountPage("日幣", 5000),
-				},
-			}, nil
-		},
-	}
-
-	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetOthersUnpaidAmount(context.Background(), "Bob", domain.CurrencyJPY)
-
-	require.NoError(t, err)
-	require.Equal(t, 9000.0, total)
-}
-
-func TestGetOthersUnpaidAmount_EmptyResult(t *testing.T) {
-	db := &mockDatabaseService{
-		queryFn: func(
-			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
-		) (*notionapi.DatabaseQueryResponse, error) {
-			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
-		},
-	}
-
-	repo := newTestRepository(db, "user-db")
-	total, err := repo.GetOthersUnpaidAmount(context.Background(), "Alice", domain.CurrencyTWD)
-
-	require.NoError(t, err)
-	require.Equal(t, 0.0, total)
-}
-
-func TestGetOthersUnpaidAmount_QueryError(t *testing.T) {
-	db := &mockDatabaseService{
-		queryFn: func(
-			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
-		) (*notionapi.DatabaseQueryResponse, error) {
-			return nil, errors.New("api down")
-		},
-	}
-
-	repo := newTestRepository(db, "user-db")
-	_, err := repo.GetOthersUnpaidAmount(context.Background(), "Alice", domain.CurrencyTWD)
-
-	require.Error(t, err)
-	require.ErrorContains(t, err, "notion database query failed")
-}
-
-func TestGetOthersUnpaidAmount_UnsupportedCurrency(t *testing.T) {
-	db := &mockDatabaseService{
-		queryFn: func(
-			context.Context, notionapi.DatabaseID, *notionapi.DatabaseQueryRequest,
-		) (*notionapi.DatabaseQueryResponse, error) {
-			return &notionapi.DatabaseQueryResponse{Results: []notionapi.Page{}}, nil
-		},
-	}
-
-	repo := newTestRepository(db, "user-db")
-	_, err := repo.GetOthersUnpaidAmount(context.Background(), "Alice", domain.Currency("USD"))
-
-	require.Error(t, err)
-	require.ErrorContains(t, err, "unsupported currency")
 }
 
 // --- GetUserByDiscordID tests ---

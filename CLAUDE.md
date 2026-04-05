@@ -45,7 +45,7 @@ All code will be reviewed by Codex and Copilot. Write clean, reviewable code.
 A personal Discord bot written in Go that automates payment tracking for group purchases. It:
 - Pulls transaction data from a Notion database
 - Calculates how much each person owes
-- Sends reminders via Discord DMs (personal DB: when unpaid exceeds per-currency threshold TWD > 2000, JPY > 8000; others DB: when any unpaid amount exists)
+- Sends reminders via Discord DMs when unpaid exceeds per-currency threshold (TWD > 2000, JPY > 8000) or any unpaid record is older than 3 months
 
 Not intended for public use — private utility for a specific Discord guild ("GX小精靈倉庫").
 
@@ -128,7 +128,7 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 ## Key Design Decisions
 
 - **Scheduling:** gocron with Asia/Tokyo timezone; `/debt-reminder` slash command triggers immediate run + one-shot delayed run
-- **Notification threshold:** Personal DB: per-currency (TWD > 2000, JPY > 8000) defined as `notificationAmountLimit` in `usecase/notify_unpaid.go`; Others DB: any amount > 0
+- **Notification threshold:** Per-currency (TWD > 2000, JPY > 8000) defined as `notificationAmountLimit` in `usecase/notify_unpaid.go`; also notifies if any unpaid record is older than 3 months and total > 0
 - **Debug mode:** `/debt-reminder debug:true` sends reminders to log channel only (no DMs); the delayed run always uses production mode
 - **No channel passing:** use case calls notifier directly; one failure does not block other users (logged, not fatal)
 
@@ -145,7 +145,6 @@ Dependency rule: `gateway` → `domain`, `usecase` → `port` → `domain`. No l
 | `DISCORD_GUILD_LOG_CHANNEL_ID` | Channel ID for logging |
 | `NOTION_TOKEN` | Notion API token |
 | `NOTION_USER_DB_ID` | Notion user database ID |
-| `NOTION_OTHERS_DB_ID` | Notion shared "其他" database ID |
 | `NOTION_ORDER_DB_ID` | Notion Order List database ID (TBL-004) |
 | `EXCHANGE_RATE_JPY_TWD` | JPY to TWD exchange rate (e.g. `0.24`) |
 | `TAG_ROLE_MAP` | Comma-separated tag=roleID pairs for Discord role mentions |
