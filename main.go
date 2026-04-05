@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
@@ -45,7 +44,7 @@ func main() {
 
 	notionClient := notionapi.NewClient(notionapi.Token(cfg.NotionToken))
 
-	// Load Asia/Tokyo timezone for scheduler and use case day guard
+	// Load Asia/Tokyo timezone for scheduler
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		log.Fatalf("invalid location: %s", err)
@@ -53,8 +52,8 @@ func main() {
 
 	// Wire dependencies: gateway adapters -> use cases
 	repo := notiongw.NewRepository(notionClient.Database, cfg.NotionUserDBID, cfg.NotionOthersDBID)
-	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID, cfg.Debug)
-	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID, loc)
+	notifier := discordgw.NewNotifier(dc, cfg.DiscordLogChannelID)
+	notifyUnpaidUC := usecase.NewNotifyUnpaid(repo, notifier, cfg.NotionOthersDBID)
 
 	orderRepo := notiongw.NewOrderRepository(notionClient.Page, cfg.NotionOrderDBID)
 	threadCreator := discordgw.NewThreadCreator(dc)
@@ -70,13 +69,10 @@ func main() {
 	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
 	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
 
-	// In debug mode, fake the clock and run the job every minute
+	// In debug mode, run the job every minute
 	crontab := cfg.WorkerCrontab
 
 	if cfg.Debug {
-		clk := clock.NewMock()
-		clk.Set(time.Date(time.Now().Year(), time.Now().Month(), 1, 9, 0, 0, 0, loc))
-		notifyUnpaidUC.Clock = clk
 		crontab = "*/1 * * * *"
 	}
 
@@ -89,7 +85,7 @@ func main() {
 	_, err = s.NewJob(gocron.CronJob(crontab, false), gocron.NewTask(func() {
 		log.Print("run job")
 
-		err := notifyUnpaidUC.Execute(ctx)
+		err := notifyUnpaidUC.Execute(ctx, cfg.Debug)
 		if err != nil {
 			log.Printf("worker: %s", err)
 		}

@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
-
-	"github.com/benbjohnson/clock"
 
 	"github.com/xgnid-tw/gx5/domain"
 	"github.com/xgnid-tw/gx5/port"
@@ -26,27 +23,19 @@ type NotifyUnpaid struct {
 	repo       port.UserRepository
 	notifier   port.Notifier
 	othersDBID string
-	location   *time.Location
-	Clock      clock.Clock
 }
 
 func NewNotifyUnpaid(
 	repo port.UserRepository, notifier port.Notifier,
-	othersDBID string, loc *time.Location,
+	othersDBID string,
 ) *NotifyUnpaid {
 	return &NotifyUnpaid{
 		repo: repo, notifier: notifier,
-		othersDBID: othersDBID, location: loc,
-		Clock: clock.New(),
+		othersDBID: othersDBID,
 	}
 }
 
-func (uc *NotifyUnpaid) Execute(ctx context.Context) error {
-	day := uc.Clock.Now().In(uc.location).Day()
-	if day != 1 && day != 15 {
-		return nil
-	}
-
+func (uc *NotifyUnpaid) Execute(ctx context.Context, debug bool) error {
 	users, err := uc.repo.GetUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("get users: %w", err)
@@ -59,7 +48,7 @@ func (uc *NotifyUnpaid) Execute(ctx context.Context) error {
 		}
 
 		if shouldNotify {
-			err = uc.notifier.Notify(ctx, *u)
+			err = uc.notifier.Notify(ctx, *u, debug)
 			if err != nil {
 				log.Printf("notify %s: %s", u.Name, err)
 			}
