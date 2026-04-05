@@ -7,5 +7,5 @@ import (
 )
 
 type Notifier interface {
-	Notify(ctx context.Context, user domain.User) error
+	Notify(ctx context.Context, user domain.User, debug bool) error
 }
