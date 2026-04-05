@@ -53,6 +53,7 @@ func handleDebtReminder(
 	respondDeferred(s, i)
 
 	opts := i.ApplicationCommandData().Options
+
 	optMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(opts))
 	for _, opt := range opts {
 		optMap[opt.Name] = opt
@@ -81,7 +82,9 @@ func handleDebtReminder(
 		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(runAt)),
 		gocron.NewTask(func() {
 			log.Print("debt-reminder scheduled run")
-			if err := uc.Execute(context.Background(), false); err != nil {
+
+			err := uc.Execute(context.Background(), false)
+			if err != nil {
 				log.Printf("debt-reminder scheduled run failed: %s", err)
 			}
 		}),
