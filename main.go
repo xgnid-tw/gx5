@@ -69,9 +69,11 @@ func main() {
 		log.Fatalf("can not create scheduler: %s", err)
 	}
 
+	debtReminderSched := discordcmd.NewDebtReminderScheduler(s)
+
 	discordcmd.RegisterNewOrderCommand(cmdHandler, createOrderUC)
 	discordcmd.RegisterBuyCommand(cmdHandler, buyUC)
-	discordcmd.RegisterDebtReminderCommand(cmdHandler, notifyUnpaidUC, s)
+	discordcmd.RegisterDebtReminderCommand(cmdHandler, notifyUnpaidUC, debtReminderSched)
 
 	// Open Discord connection and start the scheduler
 	err = dc.Open()

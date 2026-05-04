@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/go-co-op/gocron/v2"
 
 	"github.com/xgnid-tw/gx5/port"
 )
@@ -18,10 +17,19 @@ const (
 	debtReminderOptionDebug = "debug"
 	defaultDays             = 15
 	minDays                 = 1
+	timestampLayout         = "2006-01-02 15:04"
 )
 
+// debtReminderScheduler is the subset of *DebtReminderScheduler used by the handler.
+// Declared as an interface so tests can substitute a fake.
+type debtReminderScheduler interface {
+	ScheduleProductionRun(runAt time.Time, task func()) (ScheduleResult, error)
+}
+
 // RegisterDebtReminderCommand registers the /debt-reminder slash command and its handler.
-func RegisterDebtReminderCommand(ch *Handler, uc port.DebtReminder, scheduler gocron.Scheduler) {
+func RegisterDebtReminderCommand(
+	ch *Handler, uc port.DebtReminder, sched debtReminderScheduler,
+) {
 	adminPerm := int64(discordgo.PermissionAdministrator)
 
 	cmd := &discordgo.ApplicationCommand{
@@ -38,20 +46,20 @@ func RegisterDebtReminderCommand(ch *Handler, uc port.DebtReminder, scheduler go
 			{
 				Type:        discordgo.ApplicationCommandOptionBoolean,
 				Name:        debtReminderOptionDebug,
-				Description: "除錯模式（僅傳送至 log 頻道，不發送 DM）",
+				Description: "除錯模式（僅傳送至 log 頻道，不發送 DM，不排程下次執行）",
 				Required:    false,
 			},
 		},
 	}
 
 	ch.RegisterCommand(cmd, func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		handleDebtReminder(s, i, uc, scheduler)
+		handleDebtReminder(s, i, uc, sched)
 	})
 }
 
 func handleDebtReminder(
 	s *discordgo.Session, i *discordgo.InteractionCreate,
-	uc port.DebtReminder, scheduler gocron.Scheduler,
+	uc port.DebtReminder, sched debtReminderScheduler,
 ) {
 	respondDeferred(s, i)
 
@@ -77,8 +85,19 @@ func handleDebtReminder(
 		debug = v.BoolValue()
 	}
 
-	// Immediate run
-	err := uc.Execute(context.Background(), debug)
+	if debug {
+		handleDebtReminderDebug(s, i, uc)
+		return
+	}
+
+	handleDebtReminderProduction(s, i, uc, sched, days)
+}
+
+func handleDebtReminderDebug(
+	s *discordgo.Session, i *discordgo.InteractionCreate,
+	uc port.DebtReminder,
+) {
+	err := uc.Execute(context.Background(), true)
 	if err != nil {
 		log.Printf("debt-reminder immediate run failed: %s", err)
 		editDeferredResponse(s, i, fmt.Sprintf("提醒執行失敗: %s", err))
@@ -86,41 +105,58 @@ func handleDebtReminder(
 		return
 	}
 
-	// Schedule delayed production run
+	editDeferredResponse(s, i, "提醒已執行（模式: 除錯）。未排程下次執行。")
+}
+
+func handleDebtReminderProduction(
+	s *discordgo.Session, i *discordgo.InteractionCreate,
+	uc port.DebtReminder, sched debtReminderScheduler, days int64,
+) {
+	err := uc.Execute(context.Background(), false)
+	if err != nil {
+		log.Printf("debt-reminder immediate run failed: %s", err)
+		editDeferredResponse(s, i, fmt.Sprintf("提醒執行失敗，未排程下次執行: %s", err))
+
+		return
+	}
+
 	runAt := time.Now().Add(time.Duration(days) * 24 * time.Hour)
 
-	_, err = scheduler.NewJob(
-		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(runAt)),
-		gocron.NewTask(func() {
-			log.Print("debt-reminder scheduled run")
+	task := func() {
+		log.Print("debt-reminder scheduled run")
 
-			err := uc.Execute(context.Background(), false)
-			if err != nil {
-				log.Printf("debt-reminder scheduled run failed: %s", err)
-			}
-		}),
-	)
+		execErr := uc.Execute(context.Background(), false)
+		if execErr != nil {
+			log.Printf("debt-reminder scheduled run failed: %s", execErr)
+		}
+	}
+
+	result, err := sched.ScheduleProductionRun(runAt, task)
 	if err != nil {
 		log.Printf("debt-reminder schedule failed: %s", err)
 		editDeferredResponse(s, i, fmt.Sprintf(
-			"提醒已執行（模式: %s），但排程失敗: %s",
-			modeLabel(debug), err,
+			"提醒已執行（模式: 正式），但排程失敗: %s", err,
 		))
 
 		return
 	}
 
-	editDeferredResponse(s, i, fmt.Sprintf(
-		"提醒已執行（模式: %s）。下次執行: %s（正式模式）",
-		modeLabel(debug),
-		runAt.Format("2006-01-02 15:04"),
-	))
+	editDeferredResponse(s, i, buildProductionResponse(runAt, result))
 }
 
-func modeLabel(debug bool) string {
-	if debug {
-		return "除錯"
+func buildProductionResponse(runAt time.Time, result ScheduleResult) string {
+	msg := fmt.Sprintf(
+		"提醒已執行（模式: 正式）。下次執行: %s",
+		runAt.Format(timestampLayout),
+	)
+
+	if !result.ReplacedAt.IsZero() {
+		msg += fmt.Sprintf("（已取代先前排程: %s）", result.ReplacedAt.Format(timestampLayout))
 	}
 
-	return "正式"
+	if result.RemoveWarn != nil {
+		msg += fmt.Sprintf("（注意：先前排程移除失敗: %s）", result.RemoveWarn)
+	}
+
+	return msg
 }
